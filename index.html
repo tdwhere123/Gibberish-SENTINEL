@@ -146,19 +146,6 @@
         </div>
     </div>
 
-    <script type="module">
-        import { getVersionLabel } from "./js/lore-config.js";
-
-        const versionLabel = getVersionLabel();
-        document.title = `TERMINAL DIALOGUE | ${versionLabel}`;
-
-        const header = document.getElementById("sentinel-version-header");
-        if (header) header.textContent = versionLabel;
-
-        const node = document.getElementById("sentinel-version-node");
-        if (node) node.textContent = `${versionLabel} · Edge Node #4729`;
-    </script>
-
     <script type="module" src="js/main.js?v=1707282496"></script>
 </body>
 

@@ -3,6 +3,7 @@
  */
 
 import { interruptManager, INTERRUPT_TYPES, INTERRUPT_SOURCES } from './interrupt-manager.js';
+import { CONFIG } from './config.js';
 
 let elements = {};
 
@@ -326,7 +327,7 @@ export function updateStatusBar(gameState) {
         elements.suspicionDisplay.textContent = gameState.suspicion ?? 0;
     }
     if (elements.roundDisplay) {
-        elements.roundDisplay.textContent = `${gameState.round ?? 1}/${gameState.maxRounds ?? 90}`;
+        elements.roundDisplay.textContent = `${gameState.round ?? 1}/${gameState.maxRounds ?? CONFIG.MAX_ROUNDS}`;
     }
 
     const timeLeft = Math.max(0, typeof gameState.timeLeft === 'number' ? gameState.timeLeft : 0);
