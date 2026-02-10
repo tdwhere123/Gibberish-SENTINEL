@@ -7,7 +7,7 @@ import { getVersionLabel } from './lore-config.js';
 import { GameState } from './game-state.js';
 import { getAIResponse, generateEnding, loadWorldview, generateDynamicEmail } from './ai-handler.js';
 import { isCommand, executeCommand } from './commands.js';
-import { initEmailSystem, bindConnectButton, resetEmails, triggerUrgentEmail, getEmailState, receiveNewEmail } from './emails.js';
+import { initEmailSystem, bindConnectButton, resetEmails, triggerUrgentEmail, getEmailState, receiveNewEmail, showNewMailNotification } from './emails.js';
 import * as UI from './ui.js';
 import { checkRandomEvents, checkMissionEvents, EMAIL_TEMPLATES } from './events-system.js';
 import { checkFragmentUnlock, markTopicUsed, getUnlockedFragments as getUnlockedFragmentsData } from './topic-system.js';
@@ -498,9 +498,8 @@ async function sendMissionEmail(connectMode) {
         // 显示通知
         await UI.addMessage(`[SYSTEM] 收到新邮件: ${email.subject} (输入 /emails 查看)`, 'system');
 
-        // 闪烁提示
-        const mailIcon = document.querySelector('.desktop-icon .icon-label:contains("MAIL")'); // 伪代码，不需要真实DOM操作，因为UI更新由emails.js处理了一部分
-        // 但我们可以调用 UI.flashCheck() 或者类似的方法如果存在
+        // 触发轻量提示，避免使用无效选择器导致运行时异常
+        showNewMailNotification(email.subject);
     }
 }
 
