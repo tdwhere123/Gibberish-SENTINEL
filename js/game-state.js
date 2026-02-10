@@ -3,6 +3,7 @@
  * 使用 localStorage 实现持久化
  */
 import { CONFIG } from './config.js';
+import { LORE_CONFIG } from './lore-config.js';
 
 const EVENT_SCHEDULE = [
     { id: 'ALARM_FLASH', round: 7, type: 'ALARM_FLASH' },
@@ -271,9 +272,9 @@ export class GameState {
         // 基础轮次: 24
         // 信任加成: 每1点信任增加0.6轮（更平滑）
         // 最大上限: 90轮
-        const baseRounds = 24;
+        const baseRounds = LORE_CONFIG.BASE_ROUNDS;
         const bonus = Math.floor(this.trust * 0.6);
-        this.maxRounds = Math.min(90, baseRounds + bonus);
+        this.maxRounds = Math.min(LORE_CONFIG.MAX_ROUNDS, baseRounds + bonus);
     }
 
     /**

@@ -3,6 +3,7 @@
  * 初始化游戏并协调各模块
  */
 import { CONFIG } from './config.js';
+import { getVersionLabel } from './lore-config.js';
 import { GameState } from './game-state.js';
 import { getAIResponse, generateEnding, loadWorldview, generateDynamicEmail } from './ai-handler.js';
 import { isCommand, executeCommand } from './commands.js';
@@ -12,6 +13,18 @@ import { checkRandomEvents, checkMissionEvents, EMAIL_TEMPLATES } from './events
 import { checkFragmentUnlock, markTopicUsed, getUnlockedFragments as getUnlockedFragmentsData } from './topic-system.js';
 import { initArchiveToggle, addUnlockedFragment, updateSyncDisplay, showSystemEvent, updateZenSymbols, updateConnectionMode, showFragmentDetails } from './ui-extensions.js';
 import { interruptManager, INTERRUPT_TYPES, INTERRUPT_SOURCES } from './interrupt-manager.js';
+
+
+function applyLoreAnchorsToUI() {
+    const versionLabel = getVersionLabel();
+    document.title = `TERMINAL DIALOGUE | ${versionLabel}`;
+
+    const header = document.getElementById('sentinel-version-header');
+    if (header) header.textContent = versionLabel;
+
+    const node = document.getElementById('sentinel-version-node');
+    if (node) node.textContent = `${versionLabel} · Edge Node #4729`;
+}
 
 // 全局游戏状态
 let gameState = null;
@@ -27,6 +40,9 @@ let archiveSearchKeyword = '';
  * 页面初始化（先显示邮件）
  */
 async function initPage() {
+    // 应用叙事锚点（版本号等）到UI
+    applyLoreAnchorsToUI();
+
     // 检查API密钥
     checkAPIKey();
 
