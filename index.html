@@ -21,7 +21,7 @@
 
         <!-- 顶部信息面板 - 参考早期版本两栏布局 -->
         <div class="info-panel" id="info-panel">
-            <div class="info-panel-header">SENTINEL v3.8</div>
+            <div class="info-panel-header" id="sentinel-version-header">SENTINEL v3.8</div>
 
             <div class="info-panel-content">
                 <!-- 左栏：连接状态 + 禅宗符号 -->
@@ -38,7 +38,7 @@
                     </div>
 
                     <div class="node-info">
-                        <div>SENTINEL v3.8 · Edge Node #4729</div>
+                        <div id="sentinel-version-node">SENTINEL v3.8 · Edge Node #4729</div>
                         <div>Location: <span class="status-active">CLASSIFIED</span></div>
                     </div>
                 </div>
@@ -61,7 +61,7 @@
                         </div>
                         <div class="status-row">
                             <span class="status-label">Round:</span>
-                            <span class="status-value" id="round-display">1/28</span>
+                            <span class="status-value" id="round-display">1/90</span>
                         </div>
                     </div>
 
@@ -145,6 +145,19 @@
             <button id="restart-btn">RECONNECT</button>
         </div>
     </div>
+
+    <script type="module">
+        import { getVersionLabel } from "./js/lore-config.js";
+
+        const versionLabel = getVersionLabel();
+        document.title = `TERMINAL DIALOGUE | ${versionLabel}`;
+
+        const header = document.getElementById("sentinel-version-header");
+        if (header) header.textContent = versionLabel;
+
+        const node = document.getElementById("sentinel-version-node");
+        if (node) node.textContent = `${versionLabel} · Edge Node #4729`;
+    </script>
 
     <script type="module" src="js/main.js?v=1707282496"></script>
 </body>
