@@ -108,6 +108,10 @@
                 <button class="modal-close" id="archive-close">×</button>
             </div>
             <div class="modal-body">
+                <div class="archive-toolbar">
+                    <div class="archive-stats" id="archive-stats">已解锁 0 / 0</div>
+                    <input type="text" id="archive-search" class="archive-search" placeholder="搜索档案标题或关键词..." autocomplete="off">
+                </div>
                 <div class="archive-section-title">已解密档案</div>
                 <div class="fragment-list" id="fragment-list">
                     <!-- 碎片将由JS动态生成 -->
@@ -126,6 +130,14 @@
                 <button class="modal-close" id="emails-close">×</button>
             </div>
             <div class="modal-body emails-body">
+                <div class="emails-toolbar">
+                    <div class="filter-group" id="emails-filter-group">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="unread">未读</button>
+                        <button class="filter-btn" data-filter="important">重要</button>
+                    </div>
+                    <input type="text" id="emails-search" class="emails-search" placeholder="搜索发件人/主题..." autocomplete="off">
+                </div>
                 <div class="email-list-mini" id="email-list-mini">
                     <!-- 邮件列表将由JS动态生成 -->
                 </div>

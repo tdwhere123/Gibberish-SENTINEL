@@ -19,6 +19,9 @@ let gameLoop = null;
 let isProcessing = false;
 let finalQuestionActive = false;
 let pendingEndingType = null;
+let emailFilter = 'all';
+let emailSearchKeyword = '';
+let archiveSearchKeyword = '';
 
 /**
  * 页面初始化（先显示邮件）
@@ -112,6 +115,8 @@ function updateEmailsModalContent() {
     const emailList = document.getElementById('email-list-mini');
     const emailContent = document.getElementById('email-content-mini');
     const mailCount = document.getElementById('mail-count');
+    const emailsSearch = document.getElementById('emails-search');
+    const filterGroup = document.getElementById('emails-filter-group');
 
     if (!emailList) return;
 
@@ -123,22 +128,75 @@ function updateEmailsModalContent() {
     }
 
     const emails = emailState.emails;
-    if (mailCount) {
-        mailCount.textContent = `${emails.length} 封邮件`;
+    const filteredEmails = emails.filter(email => {
+        if (emailFilter === 'unread' && email.read) return false;
+        if (emailFilter === 'important' && !email.isImportant) return false;
+
+        const keyword = emailSearchKeyword.trim().toLowerCase();
+        if (!keyword) return true;
+
+        const from = String(email.from || '').toLowerCase();
+        const subject = String(email.subject || '').toLowerCase();
+        const content = String(email.content || '').toLowerCase();
+        return from.includes(keyword) || subject.includes(keyword) || content.includes(keyword);
+    });
+
+    if (emailsSearch && emailsSearch.dataset.bound !== 'true') {
+        emailsSearch.dataset.bound = 'true';
+        emailsSearch.addEventListener('input', (e) => {
+            emailSearchKeyword = e.target.value || '';
+            updateEmailsModalContent();
+        });
     }
 
-    emailList.innerHTML = emails.map((email, index) => `
-        <div class="email-item-mini ${email.read ? '' : 'unread'}" data-index="${index}">
+    if (emailsSearch && emailsSearch.value !== emailSearchKeyword) {
+        emailsSearch.value = emailSearchKeyword;
+    }
+
+    if (filterGroup && filterGroup.dataset.bound !== 'true') {
+        filterGroup.dataset.bound = 'true';
+        filterGroup.addEventListener('click', (e) => {
+            const btn = e.target.closest('.filter-btn');
+            if (!btn) return;
+            emailFilter = btn.dataset.filter || 'all';
+            updateEmailsModalContent();
+        });
+    }
+
+    if (filterGroup) {
+        filterGroup.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === emailFilter);
+        });
+    }
+
+    if (mailCount) {
+        mailCount.textContent = `${filteredEmails.length}/${emails.length} 封邮件`;
+    }
+
+    if (filteredEmails.length === 0) {
+        emailList.innerHTML = '<div class="email-placeholder">没有匹配的邮件</div>';
+        if (emailContent) {
+            emailContent.innerHTML = '<div class="email-placeholder">尝试切换筛选条件或更换关键词</div>';
+        }
+        return;
+    }
+
+    emailList.innerHTML = filteredEmails.map((email, index) => `
+        <div class="email-item-mini ${email.read ? '' : 'unread'} ${email.isImportant ? 'important' : ''}" data-filtered-index="${index}">
             <div class="email-from">${email.from}</div>
             <div class="email-subject">${email.subject}</div>
+            <div class="email-tags">
+                ${email.isImportant ? '<span class="tag tag-important">重要</span>' : ''}
+                ${email.read ? '<span class="tag">已读</span>' : '<span class="tag tag-unread">未读</span>'}
+            </div>
         </div>
     `).join('');
 
     // 绑定点击事件
     emailList.querySelectorAll('.email-item-mini').forEach(item => {
         item.addEventListener('click', () => {
-            const index = parseInt(item.dataset.index);
-            showEmailDetail(emails[index], item);
+            const index = parseInt(item.dataset.filteredIndex);
+            showEmailDetail(filteredEmails[index], item);
         });
     });
 }
@@ -172,12 +230,37 @@ function showEmailDetail(email, itemElement) {
 function updateArchiveModalContent() {
     const fragmentList = document.getElementById('fragment-list');
     const archiveEmpty = document.getElementById('archive-empty');
+    const archiveSearch = document.getElementById('archive-search');
+    const archiveStats = document.getElementById('archive-stats');
 
     if (!fragmentList || !gameState) return;
 
     // 从 topic-system 获取完整的碎片数据
     const unlockedIds = gameState.unlockedFragments || [];
     const fragments = getUnlockedFragmentsData(gameState);
+    const keyword = archiveSearchKeyword.trim().toLowerCase();
+    const filteredFragments = fragments.filter(fragment => {
+        if (!keyword) return true;
+        const title = String(fragment.title || '').toLowerCase();
+        const content = String(fragment.content || '').toLowerCase();
+        return title.includes(keyword) || content.includes(keyword);
+    });
+
+    if (archiveSearch && archiveSearch.dataset.bound !== 'true') {
+        archiveSearch.dataset.bound = 'true';
+        archiveSearch.addEventListener('input', (e) => {
+            archiveSearchKeyword = e.target.value || '';
+            updateArchiveModalContent();
+        });
+    }
+
+    if (archiveSearch && archiveSearch.value !== archiveSearchKeyword) {
+        archiveSearch.value = archiveSearchKeyword;
+    }
+
+    if (archiveStats) {
+        archiveStats.textContent = `已解锁 ${fragments.length} / ${unlockedIds.length || fragments.length}`;
+    }
 
     if (fragments.length === 0) {
         fragmentList.innerHTML = '';
@@ -185,19 +268,32 @@ function updateArchiveModalContent() {
         return;
     }
 
-    if (archiveEmpty) archiveEmpty.style.display = 'none';
+    if (filteredFragments.length === 0) {
+        fragmentList.innerHTML = '';
+        if (archiveEmpty) {
+            archiveEmpty.style.display = 'block';
+            archiveEmpty.textContent = '没有匹配的档案，请尝试其他关键词';
+        }
+        return;
+    }
 
-    fragmentList.innerHTML = fragments.map(fragment => `
+    if (archiveEmpty) archiveEmpty.style.display = 'none';
+    if (archiveEmpty) archiveEmpty.textContent = '暂无已解锁的数据档案';
+
+    fragmentList.innerHTML = filteredFragments.map(fragment => `
         <div class="fragment-item" data-id="${fragment.id}">
             <span class="fragment-icon">◈</span>
-            <span class="fragment-name">${fragment.title || '未知档案'}</span>
+            <span class="fragment-meta">
+                <span class="fragment-name">${fragment.title || '未知档案'}</span>
+                <span class="fragment-preview">${(fragment.content || '').slice(0, 48)}${(fragment.content || '').length > 48 ? '...' : ''}</span>
+            </span>
         </div>
     `).join('');
 
     // 绑定点击事件显示详情
     fragmentList.querySelectorAll('.fragment-item').forEach(item => {
         item.addEventListener('click', () => {
-            const fragment = fragments.find(f => f.id === item.dataset.id);
+            const fragment = filteredFragments.find(f => f.id === item.dataset.id);
             if (fragment) {
                 showFragmentDetails(fragment);
             }
