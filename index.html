@@ -21,7 +21,7 @@
 
         <!-- 顶部信息面板 - 参考早期版本两栏布局 -->
         <div class="info-panel" id="info-panel">
-            <div class="info-panel-header" id="sentinel-version-header">SENTINEL v3.8</div>
+            <div class="info-panel-header">SENTINEL v3.8</div>
 
             <div class="info-panel-content">
                 <!-- 左栏：连接状态 + 禅宗符号 -->
@@ -38,7 +38,7 @@
                     </div>
 
                     <div class="node-info">
-                        <div id="sentinel-version-node">SENTINEL v3.8 · Edge Node #4729</div>
+                        <div>SENTINEL v3.8 · Edge Node #4729</div>
                         <div>Location: <span class="status-active">CLASSIFIED</span></div>
                     </div>
                 </div>
@@ -61,7 +61,7 @@
                         </div>
                         <div class="status-row">
                             <span class="status-label">Round:</span>
-                            <span class="status-value" id="round-display">1/90</span>
+                            <span class="status-value" id="round-display">1/28</span>
                         </div>
                     </div>
 
@@ -108,6 +108,10 @@
                 <button class="modal-close" id="archive-close">×</button>
             </div>
             <div class="modal-body">
+                <div class="archive-toolbar">
+                    <div class="archive-stats" id="archive-stats">已解锁 0 / 0</div>
+                    <input type="text" id="archive-search" class="archive-search" placeholder="搜索档案标题或关键词..." autocomplete="off">
+                </div>
                 <div class="archive-section-title">已解密档案</div>
                 <div class="fragment-list" id="fragment-list">
                     <!-- 碎片将由JS动态生成 -->
@@ -126,6 +130,14 @@
                 <button class="modal-close" id="emails-close">×</button>
             </div>
             <div class="modal-body emails-body">
+                <div class="emails-toolbar">
+                    <div class="filter-group" id="emails-filter-group">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="unread">未读</button>
+                        <button class="filter-btn" data-filter="important">重要</button>
+                    </div>
+                    <input type="text" id="emails-search" class="emails-search" placeholder="搜索发件人/主题..." autocomplete="off">
+                </div>
                 <div class="email-list-mini" id="email-list-mini">
                     <!-- 邮件列表将由JS动态生成 -->
                 </div>
