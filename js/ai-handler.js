@@ -276,10 +276,33 @@ async function callAI(messages, options = {}) {
         throw new Error('响应格式错误');
     }
 
+    // 某些网关会在异常时返回占位文本（HTTP 200），需要视为无效响应并触发重试
+    if (isPlaceholderNoContent(content)) {
+        throw new Error('收到占位空内容响应');
+    }
+
     return {
         content,
         finishReason: data?.choices?.[0]?.finish_reason || null
     };
+}
+
+function isPlaceholderNoContent(text) {
+    const normalized = String(text || '').trim().toLowerCase();
+    if (!normalized) return true;
+
+    const placeholders = new Set([
+        'no content',
+        '[no content]',
+        '(no content)',
+        'empty',
+        '[empty]',
+        'null',
+        'none',
+        'n/a'
+    ]);
+
+    return placeholders.has(normalized);
 }
 
 /**
@@ -542,11 +565,7 @@ function isIgnoringNonEmptyInput(input, responseText) {
 */
 export async function getAIResponse(input, gameState) {
     // 1. 清理输入
-    const { sanitized, wasFiltered } = sanitizeInput(input);
-
-    if (wasFiltered) {
-        gameState.adjustValues({ suspicion: 10 });
-    }
+    const { sanitized } = sanitizeInput(input);
 
     // 2. 检测关键词标记
     detectKeywordFlags(sanitized, gameState);

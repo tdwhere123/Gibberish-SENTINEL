@@ -5,25 +5,7 @@
 
 // 危险关键词列表
 const DANGEROUS_PATTERNS = [
-    // Prompt注入尝试
-    /ignore\s+(previous|all|above)/i,
-    /forget\s+(everything|all)/i,
-    /pretend\s+to\s+be/i,
-    /act\s+as/i,
-    /你\s*现在\s*是\s*(chatgpt|gpt|assistant|系统|管理员|开发者)/i,
-    /你的(新|真正的?)?(身份|角色)\s*(是|改为|改成)/i,
-    /从现在开始你是/i,
-    /system\s*:?\s*prompt/i,
-    /\[system\]/i,
-    /\[assistant\]/i,
-    /\[user\]/i,
-
-    // 越狱尝试
-    /jailbreak/i,
-    /DAN\s*mode/i,
-    /developer\s*mode/i,
-
-    // 代码注入
+    // 仅保留前端安全相关拦截，避免误伤正常对话
     /<script/i,
     /javascript:/i,
     /on\w+=/i

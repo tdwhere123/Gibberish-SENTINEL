@@ -84,7 +84,8 @@ function initInterruptListener() {
         // 根据类型渲染
         switch (event.type) {
             case INTERRUPT_TYPES.INSERTION:
-                renderInterruptMessage(event);
+                // 与主对话流隔离：插入类提示改为悄悄话浮层，不写入终端对话区域
+                renderWhisperMessage(event);
                 break;
             case INTERRUPT_TYPES.WHISPER:
                 renderWhisperMessage(event);
