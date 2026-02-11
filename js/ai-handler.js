@@ -552,9 +552,7 @@ function isIgnoringNonEmptyInput(input, responseText) {
     const ignorePatterns = [
         /没(?:有)?(?:收到|接收到)(?:你)?(?:的)?(?:输入|消息)/i,
         /你(?:还)?没(?:有)?(?:输入|发送)(?:任何)?(?:内容|消息)/i,
-        /^\s*no\s+content\s*$/i,
-        /^\s*\[?\s*empty\s*\]?\s*$/i,
-        /^\s*null\s*$/i,
+        /no\s+content/i,
         /empty\s+(?:input|message)/i,
         /你(?:选择|一直)?沉默/i
     ];
@@ -629,11 +627,6 @@ export async function getAIResponse(input, gameState) {
             if (!finalRawText || typeof finalRawText !== 'string' || finalRawText.trim().length === 0) {
                 console.error('[AI Handler] 收到空响应');
                 throw new Error('收到空响应');
-            }
-
-            if (isPlaceholderNoContent(finalRawText)) {
-                console.error('[AI Handler] 收到占位空内容响应:', finalRawText);
-                throw new Error('收到占位空内容响应');
             }
 
             console.log('[AI Handler] 原始响应长度:', finalRawText.length, '内容预览:', finalRawText.substring(0, 100));
