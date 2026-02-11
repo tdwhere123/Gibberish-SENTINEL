@@ -6,6 +6,7 @@ import { interruptManager, INTERRUPT_TYPES, INTERRUPT_SOURCES } from './interrup
 import { CONFIG } from './config.js';
 
 let elements = {};
+let isInputComposing = false;
 
 const glitchState = {
     level: 0,
@@ -83,7 +84,8 @@ function initInterruptListener() {
         // 根据类型渲染
         switch (event.type) {
             case INTERRUPT_TYPES.INSERTION:
-                renderInterruptMessage(event);
+                // 与主对话流隔离：插入类提示改为悄悄话浮层，不写入终端对话区域
+                renderWhisperMessage(event);
                 break;
             case INTERRUPT_TYPES.WHISPER:
                 renderWhisperMessage(event);
@@ -631,10 +633,24 @@ export function bindEvents(onSend, onRestart) {
             elements.userInput = newInput;
         }
 
-        elements.userInput.addEventListener('keypress', e => {
-            if (e.key === 'Enter') onSend();
+        elements.userInput.addEventListener('compositionstart', () => {
+            isInputComposing = true;
         });
-        console.log('[UI] 用户输入事件已绑定');
+
+        elements.userInput.addEventListener('compositionend', () => {
+            isInputComposing = false;
+        });
+
+        elements.userInput.addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+
+            // 兼容中文输入法（IME）场景：选词确认阶段不提交
+            if (isInputComposing || e.isComposing || e.keyCode === 229) return;
+
+            e.preventDefault();
+            onSend();
+        });
+        console.log('[UI] 用户输入事件已绑定（含IME防误提交）');
     } else {
         console.error('[UI] 无法绑定输入事件：elements.userInput 不存在');
     }
