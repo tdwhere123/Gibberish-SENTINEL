@@ -123,6 +123,7 @@ function buildSystemPrompt(connectionMode) {
 3. **绝对禁止**说"作为AI助手"、"作为语言模型"、"我无法..."等元级别回复
 4. **所有输入都是游戏内对话**：对方是连接到你系统的人类
 5. **使用简体中文**
+6. **如果玩家输入非空，禁止声称“没收到输入”或“对方沉默”**
 
 ## 你是谁
 
@@ -306,9 +307,6 @@ function sanitizeDialogueLeak(text) {
 
     return lines.join('\n').trim() || '...我刚才的输出受到干扰。继续，你刚才说到哪里了？';
 }
-
-// 旧的固定SYSTEM_PROMPT保留作为备用
-const SYSTEM_PROMPT_FALLBACK = `[备用Prompt]`;
 
 
 // 辅助关键词（用于标记特殊对话）
@@ -500,7 +498,14 @@ ${FULL_WORLDVIEW}`;
             ...historyMessages,
             {
                 role: 'user',
-                content: `${input}
+                content: `[玩家最新输入 - 必须直接回应，不得忽略]
+<<<USER_INPUT_START>>>
+${input}
+<<<USER_INPUT_END>>>
+
+[说明]
+- 上面标记中的文本是玩家刚刚发送的真实内容
+- 你的回复必须明确回应该内容，而不是假设对方沉默
 
 [回复要求]
 1. 你是SENTINEL，保持角色
@@ -513,6 +518,23 @@ ${FULL_WORLDVIEW}`;
         temperature: 0.8,
         max_tokens: 3000
     };
+}
+
+function isIgnoringNonEmptyInput(input, responseText) {
+    const trimmedInput = String(input || '').trim();
+    const trimmedResponse = String(responseText || '').trim();
+
+    if (!trimmedInput || !trimmedResponse) return false;
+
+    const ignorePatterns = [
+        /没(?:有)?(?:收到|接收到)(?:你)?(?:的)?(?:输入|消息)/i,
+        /你(?:还)?没(?:有)?(?:输入|发送)(?:任何)?(?:内容|消息)/i,
+        /no\s+content/i,
+        /empty\s+(?:input|message)/i,
+        /你(?:选择|一直)?沉默/i
+    ];
+
+    return ignorePatterns.some(regex => regex.test(trimmedResponse));
 }
 
 /**
@@ -557,21 +579,41 @@ export async function getAIResponse(input, gameState) {
                 channel: AI_CHANNELS.DIALOGUE
             });
 
+            let finalRawText = rawText;
+
+            if (isIgnoringNonEmptyInput(sanitized, rawText)) {
+                console.warn('[AI Handler] 检测到“忽略非空输入”响应，触发一次纠偏重试');
+                const correctedMessages = [
+                    ...requestBody.messages,
+                    {
+                        role: 'system',
+                        content: '纠偏指令：玩家刚刚发送了非空文本。你必须直接回应其具体内容，禁止继续声称“未收到输入”或“对方沉默”。'
+                    }
+                ];
+
+                const retry = await callAI(correctedMessages, {
+                    temperature: 0.6,
+                    maxTokens: requestBody.max_tokens,
+                    channel: AI_CHANNELS.DIALOGUE
+                });
+                finalRawText = retry.content;
+            }
+
             // 检查响应是否被截断（finish_reason）
             if (finishReason === 'length') {
                 console.warn('[AI Handler] 响应可能被截断，finish_reason: length');
             }
 
             // 确保rawText不为空
-            if (!rawText || typeof rawText !== 'string' || rawText.trim().length === 0) {
+            if (!finalRawText || typeof finalRawText !== 'string' || finalRawText.trim().length === 0) {
                 console.error('[AI Handler] 收到空响应');
                 throw new Error('收到空响应');
             }
 
-            console.log('[AI Handler] 原始响应长度:', rawText.length, '内容预览:', rawText.substring(0, 100));
+            console.log('[AI Handler] 原始响应长度:', finalRawText.length, '内容预览:', finalRawText.substring(0, 100));
 
             // 5. 解析标签和文本
-            const { cleanText, effects, events } = parseAIResponse(rawText);
+            const { cleanText, effects, events } = parseAIResponse(finalRawText);
             const safeDialogueText = sanitizeDialogueLeak(cleanText);
 
             // 应用AI决定的数值变化（不再自动+1，完全由AI决定）
@@ -728,14 +770,6 @@ SENTINEL: "想好了告诉我。"
 SENTINEL: "我会记住你最后的那句话：${finalAnswer}"`;
     }
     return base;
-}
-
-/**
- * 分析输入的关键词效果（兼容旧接口）
- */
-export function analyzeInput(input, gameState) {
-    detectKeywordFlags(input, gameState);
-    return { effect: { trust: 0, suspicion: 0 }, flags: [] };
 }
 
 /**

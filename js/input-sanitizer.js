@@ -29,8 +29,6 @@ const DANGEROUS_PATTERNS = [
     /on\w+=/i
 ];
 
-// 过滤后的替代词
-const FILTERED_RESPONSE = '[输入已过滤]';
 
 /**
  * 检查输入是否包含危险内容
