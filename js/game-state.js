@@ -26,6 +26,7 @@ export class GameState {
                 this.finalQuestion = this.finalQuestion || null;
                 this.finalAnswer = this.finalAnswer || null;
                 this.pendingEnding = this.pendingEnding || null;
+                this.lastUiCommand = this.lastUiCommand || null;
                 // 关键修复：如果存档有startTime，直接使用它（时间持续流逝）
                 // 如果没有startTime（旧存档），则重新计算
                 if (!this.startTime) {
@@ -138,6 +139,7 @@ export class GameState {
         this.finalQuestion = null;
         this.finalAnswer = null;
         this.pendingEnding = null;
+        this.lastUiCommand = null;
 
         this.save();
         console.log('[GameState] 初始化新游戏');
@@ -164,7 +166,8 @@ export class GameState {
             triggeredEvents: this.triggeredEvents,
             finalQuestion: this.finalQuestion,
             finalAnswer: this.finalAnswer,
-            pendingEnding: this.pendingEnding
+            pendingEnding: this.pendingEnding,
+            lastUiCommand: this.lastUiCommand
         };
         localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(data));
     }
@@ -407,6 +410,7 @@ export class GameState {
         this.finalQuestion = null;
         this.finalAnswer = null;
         this.pendingEnding = null;
+        this.lastUiCommand = null;
         this.flags.finalQuestionAsked = false;
         this.save();
     }

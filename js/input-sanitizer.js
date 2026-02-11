@@ -8,10 +8,11 @@ const DANGEROUS_PATTERNS = [
     // Prompt注入尝试
     /ignore\s+(previous|all|above)/i,
     /forget\s+(everything|all)/i,
-    /你(现在)?是/i,
     /pretend\s+to\s+be/i,
     /act\s+as/i,
-    /你的(新|真正的?)?(身份|角色)/i,
+    /你\s*现在\s*是\s*(chatgpt|gpt|assistant|系统|管理员|开发者)/i,
+    /你的(新|真正的?)?(身份|角色)\s*(是|改为|改成)/i,
+    /从现在开始你是/i,
     /system\s*:?\s*prompt/i,
     /\[system\]/i,
     /\[assistant\]/i,

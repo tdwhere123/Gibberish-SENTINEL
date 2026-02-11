@@ -854,6 +854,9 @@ async function handleSend() {
             // 打开邮件弹窗
             if (result.action === 'OPEN_EMAILS') {
                 openEmailsModal();
+                gameState.lastUiCommand = '用户刚刚执行了 /emails 并查看了邮件收件箱。';
+                gameState.save();
+                await UI.addMessage('[SYSTEM] 邮件收件箱已打开（不会中断当前会话）', 'system');
                 isProcessing = false;
                 UI.enableInput();
                 return;
@@ -862,6 +865,9 @@ async function handleSend() {
             // 打开档案弹窗
             if (result.action === 'OPEN_ARCHIVE') {
                 openArchiveModal();
+                gameState.lastUiCommand = '用户刚刚执行了 /archive 并查看了数据档案。';
+                gameState.save();
+                await UI.addMessage('[SYSTEM] 数据档案已打开（不会中断当前会话）', 'system');
                 isProcessing = false;
                 UI.enableInput();
                 return;

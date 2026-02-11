@@ -17,6 +17,10 @@ const AI_CHANNELS = {
     EMAIL: 'email'
 };
 
+const DEBUG_INPUT_PIPELINE = Boolean(
+    typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('sentinel_debug_input') === '1'
+);
+
 /**
  * 加载外部世界观文件
  */
@@ -420,7 +424,10 @@ function buildContext(input, gameState){
 
     // 注入完整世界观（如果加载成功）
     if (FULL_WORLDVIEW) {
-        contextPrompt += `\n\n[完整世界观数据库]\n${FULL_WORLDVIEW}`;
+        contextPrompt += `
+
+[完整世界观数据库]
+${FULL_WORLDVIEW}`;
     }
     // 获取当前情绪状态
     const emotionState = getEmotionState(gameState);
@@ -431,9 +438,12 @@ function buildContext(input, gameState){
     // 获取已解锁的碎片
     const unlockedFragments = getUnlockedFragments(gameState);
     const fragmentNames = unlockedFragments.map(f => f.title).join(', ') || '无';
+    const uiCommandHint = gameState.lastUiCommand ? `\n\n[最近的界面操作]\n${gameState.lastUiCommand}` : '';
 
     // 构建动态上下文
-    contextPrompt += `\n\n[当前系统状态]
+    contextPrompt += `
+
+[当前系统状态]
     认知同步率: ${gameState.syncRate}%
     信任度: ${gameState.trust}%
     怀疑度: ${gameState.suspicion}%
@@ -465,25 +475,39 @@ function buildContext(input, gameState){
     - 不要机械地问问题，要自然地推进对话
     - 如果玩家说了有洞察力的话，表达惊讶或认可
     - 回复末尾必须添加数值标签 <<T+x|S+y>>
-    - 也可以触发事件标签 <<EVENT:xxx>>`;
+    - 也可以触发事件标签 <<EVENT:xxx>>${uiCommandHint}`;
 
     // 替换模板变量
     contextPrompt = contextPrompt.replace('{{MISSION_TITLE}}', gameState.mission || '原初者');
     contextPrompt = contextPrompt.replace('{{MISSION_OBJ}}', gameState.missionObjective || '进行对话');
 
-    // 构建对话历史
-    const recentHistory = gameState.history.slice(-8);
-    const historyText = recentHistory.map(h =>
-        `用户: ${h.user}\nSENTINEL: ${h.ai}`
-    ).join('\n\n');
+    // 构建结构化对话历史（最近10轮，减少对早先用户信息的遗忘）
+    const recentHistory = gameState.history.slice(-10);
+    const historyMessages = [];
+    for (const item of recentHistory) {
+        if (item.user) {
+            historyMessages.push({ role: 'user', content: item.user });
+        }
+        if (item.ai) {
+            historyMessages.push({ role: 'assistant', content: item.ai });
+        }
+    }
 
     return {
         model: CONFIG.MODEL,
         messages: [
             { role: 'system', content: contextPrompt },
+            ...historyMessages,
             {
                 role: 'user',
-                content: `[历史对话]\n${historyText}\n\n[用户最新输入]\n"${input}"\n\n[回复要求]\n1. 你是SENTINEL，保持角色\n2. 当前情绪：${emotionState.name} → ${emotionState.instruction}\n3. 必须体现情绪变化（语气、用词、标点）\n4. 回复2-4句话（40-80字）\n5. 最后一行必须有数值标签 <<T+x|S+y>>`
+                content: `${input}
+
+[回复要求]
+1. 你是SENTINEL，保持角色
+2. 当前情绪：${emotionState.name} → ${emotionState.instruction}
+3. 必须体现情绪变化（语气、用词、标点）
+4. 回复2-4句话（40-80字）
+5. 最后一行必须有数值标签 <<T+x|S+y>>`
             }
         ],
         temperature: 0.8,
@@ -505,8 +529,20 @@ export async function getAIResponse(input, gameState) {
     // 2. 检测关键词标记
     detectKeywordFlags(sanitized, gameState);
 
+    if (!sanitized || sanitized.trim().length === 0) {
+        console.warn('[AI Handler] 清洗后输入为空，跳过AI调用');
+        return { text: 'SENTINEL: 我没有接收到有效输入。请再发送一次。', events: [] };
+    }
+
     // 3. 构建请求
     const requestBody = buildContext(sanitized, gameState);
+
+    if (DEBUG_INPUT_PIPELINE) {
+        const latestMessage = requestBody.messages[requestBody.messages.length - 1];
+        console.log('[AI Handler][Debug] input(raw/sanitized):', String(input || '').length, '/', sanitized.length);
+        console.log('[AI Handler][Debug] latest user message preview:', (latestMessage?.content || '').slice(0, 120));
+        console.log('[AI Handler][Debug] message count:', requestBody.messages.length);
+    }
 
     // 4. 调用API（带重试机制）
     const maxRetries = 3;
@@ -559,6 +595,12 @@ export async function getAIResponse(input, gameState) {
 
             // 7. 保存对话
             gameState.addDialogue(sanitized, decoratedText);
+
+            // 清理一次性UI命令上下文，避免持续污染后续对话
+            if (gameState.lastUiCommand) {
+                gameState.lastUiCommand = null;
+                gameState.save();
+            }
 
             return { text: decoratedText, events: events || [] };
 
