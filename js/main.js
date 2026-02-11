@@ -764,10 +764,14 @@ async function handleAIEventTag(tag) {
     if (type === 'EMAIL') {
         const emailId = parts[1] || 'dynamic';
         const contextHint = parts.slice(2).join(':');
-        await handleUrgentEmailEvent(emailId, {
+
+        // 邮件系统与对话系统解耦：邮件事件异步处理，避免阻塞主对话链路
+        handleUrgentEmailEvent(emailId, {
             source: 'ai',
             contextHint,
             dynamic: emailId === 'dynamic'
+        }).catch(error => {
+            console.error('[Main] 异步邮件事件处理失败:', error);
         });
         return;
     }

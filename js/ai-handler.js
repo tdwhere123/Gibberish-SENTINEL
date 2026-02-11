@@ -11,6 +11,12 @@ import { getEmotionState, decorateTextWithEmotion, getEmotionAscii } from './emo
 // 用于存储完整世界观
 let FULL_WORLDVIEW = '';
 
+const AI_CHANNELS = {
+    DIALOGUE: 'dialogue',
+    ENDING: 'ending',
+    EMAIL: 'email'
+};
+
 /**
  * 加载外部世界观文件
  */
@@ -214,6 +220,87 @@ ${strategy.stageGuide}
 ---
 
 现在开始对话。记住：**根据连接模式调整策略，体现情绪，适时透露背景，保持追问。**`;
+}
+
+/**
+ * 结局专用 Prompt（与对话系统隔离，避免继承邮件/事件标签规则）
+ */
+function buildEndingSystemPrompt(connectionMode) {
+    const mode = connectionMode || 'STANDARD';
+    return `你是SENTINEL，正在输出一次会话结束时的独白。
+
+规则：
+1. 只输出结局独白内容，不要输出JSON、邮件模板、命令、标签。
+2. 禁止输出 <<T+x|S+y>>、<<EVENT:...>> 等任何标记。
+3. 使用简体中文，保持赛博朋克语气，长度3-5句。
+4. 这是 ${mode} 连接模式下的结束总结，请围绕关系变化与未解问题收束。`;
+}
+
+/**
+ * 统一API调用入口（不同频道使用不同meta标识）
+ */
+async function callAI(messages, options = {}) {
+    const {
+        temperature = 0.8,
+        maxTokens = 2000,
+        channel = AI_CHANNELS.DIALOGUE
+    } = options;
+
+    const response = await fetch(CONFIG.API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${CONFIG.API_KEY}`,
+            'X-Sentinel-Channel': channel
+        },
+        body: JSON.stringify({
+            model: CONFIG.MODEL,
+            messages,
+            temperature,
+            max_tokens: maxTokens
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`API错误: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content || typeof content !== 'string') {
+        throw new Error('响应格式错误');
+    }
+
+    return {
+        content,
+        finishReason: data?.choices?.[0]?.finish_reason || null
+    };
+}
+
+/**
+ * 过滤掉误混入对话的邮件模板段落
+ */
+function sanitizeDialogueLeak(text) {
+    if (!text) return '';
+
+    const leakedPatterns = [
+        /(^|\n)\s*(FROM|SUBJECT|DATE)\s*:/i,
+        /<[^\n>]+@[^\n>]+>/,
+        /━━━━━━━━━━━━━━━━━━━━━━━/,
+        /\[SECURITY DIVISION/i
+    ];
+
+    const likelyLeak = leakedPatterns.some(pattern => pattern.test(text));
+    if (!likelyLeak) return text;
+
+    const lines = text
+        .split('\n')
+        .filter(line => !/^(FROM|SUBJECT|DATE)\s*:/i.test(line.trim()))
+        .filter(line => !/<[^\n>]+@[^\n>]+>/.test(line))
+        .filter(line => !/━━━━━━━━/.test(line))
+        .filter(line => !/\[SECURITY DIVISION/i.test(line));
+
+    return lines.join('\n').trim() || '...我刚才的输出受到干扰。继续，你刚才说到哪里了？';
 }
 
 // 旧的固定SYSTEM_PROMPT保留作为备用
@@ -428,27 +515,13 @@ export async function getAIResponse(input, gameState) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             console.log(`[AI Handler] 请求尝试 ${attempt}...`);
-            const response = await fetch(CONFIG.API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${CONFIG.API_KEY}`
-                },
-                body: JSON.stringify(requestBody)
+            const { content: rawText, finishReason } = await callAI(requestBody.messages, {
+                temperature: requestBody.temperature,
+                maxTokens: requestBody.max_tokens,
+                channel: AI_CHANNELS.DIALOGUE
             });
 
-            if (!response.ok) throw new Error(`API错误: ${response.status}`);
-            const data = await response.json();
-
-            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-                console.error('[AI Handler] 响应格式错误:', data);
-                throw new Error('响应格式错误');
-            }
-
-            const rawText = data.choices[0].message.content;
-
             // 检查响应是否被截断（finish_reason）
-            const finishReason = data.choices[0].finish_reason;
             if (finishReason === 'length') {
                 console.warn('[AI Handler] 响应可能被截断，finish_reason: length');
             }
@@ -463,6 +536,7 @@ export async function getAIResponse(input, gameState) {
 
             // 5. 解析标签和文本
             const { cleanText, effects, events } = parseAIResponse(rawText);
+            const safeDialogueText = sanitizeDialogueLeak(cleanText);
 
             // 应用AI决定的数值变化（不再自动+1，完全由AI决定）
             gameState.adjustValues(effects);
@@ -471,7 +545,7 @@ export async function getAIResponse(input, gameState) {
 
             // 6. 应用情绪装饰
             const emotionState = getEmotionState(gameState);
-            let decoratedText = decorateTextWithEmotion(cleanText, emotionState);
+            let decoratedText = decorateTextWithEmotion(safeDialogueText, emotionState);
 
             // 在特定情绪下，有概率添加ASCII艺术
             if (Math.random() < 0.3 && (emotionState.id === 'confused' || emotionState.id === 'fearful' || emotionState.id === 'breakthrough')) {
@@ -523,19 +597,11 @@ export async function generateEnding(gameState, endingType, finalAnswer = null) 
 Make the ending respond directly to this line and set the tone accordingly.` : '';
 
     try {
-        const response = await fetch(CONFIG.API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${CONFIG.API_KEY}`
-            },
-            body: JSON.stringify({
-                model: CONFIG.MODEL,
-                messages: [
-                    { role: 'system', content: buildSystemPrompt(gameState.connectionMode || 'STANDARD') },
-                    {
-                        role: 'user',
-                        content: `[结局生成指令]
+        const { content } = await callAI([
+            { role: 'system', content: buildEndingSystemPrompt(gameState.connectionMode || 'STANDARD') },
+            {
+                role: 'user',
+                content: `[结局生成指令]
 类型: ${endingType}
 信任度: ${gameState.trust}%
 怀疑度: ${gameState.suspicion}%
@@ -546,15 +612,13 @@ ${prompt}
 ${finalAnswerText}
 
 生成3-5句话的结局独白。不需要数值标签。保持简洁，留下开放式问题。`
-                    }
-                ],
-                temperature: 0.8,
-                max_tokens: 2000
-            })
+            }
+        ], {
+            temperature: 0.75,
+            maxTokens: 1200,
+            channel: AI_CHANNELS.ENDING
         });
-
-        const data = await response.json();
-        return data.choices[0].message.content;
+        return content;
 
     } catch (error) {
         console.error('[AI Handler] 结局生成失败:', error);
@@ -699,29 +763,16 @@ ${emailType} - ${senderProfile}
   "body": "邮件正文（包含换行符）"
 }`;
 
-        const response = await fetch(CONFIG.API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${CONFIG.API_KEY}`
-            },
-            body: JSON.stringify({
-                model: CONFIG.MODEL,
-                messages: [
-                    { role: 'system', content: '你是一个游戏邮件生成器。只返回JSON，不要其他内容。邮件内容要丰富、有深度、与游戏状态相关。' },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.85,
-                max_tokens: 800
-            })
+        const { content: raw } = await callAI([
+            { role: 'system', content: '你是一个游戏邮件生成器。只返回JSON，不要其他内容。邮件内容要丰富、有深度、与游戏状态相关。' },
+            { role: 'user', content: prompt }
+        ], {
+            temperature: 0.85,
+            maxTokens: 800,
+            channel: AI_CHANNELS.EMAIL
         });
 
-        if (!response.ok) {
-            throw new Error(`API请求失败: ${response.status}`);
-        }
-
-        const data = await response.json();
-        let content = data.choices[0].message.content.trim();
+        let content = raw.trim();
 
         // 清理可能的markdown代码块标记
         content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
