@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERMINAL DIALOGUE | SENTINEL v3.8</title>
+    <meta name="description" content="与全球AI系统SENTINEL的一次15分钟对话。你是一个原初者。它有一个困惑。">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="css/terminal.css?v=1707282496">
+</head>
+
+<body>
+    <!-- 邮件界面（游戏开始前）- 由 emails.js 动态填充 -->
+    <div id="mailbox-container" class="mailbox-container">
+        <!-- 内容由 emails.js 的 ensureMailboxShell() 动态生成 -->
+    </div>
+
+    <!-- 主游戏界面 -->
+    <div class="app-container hidden" id="app-container">
+
+        <!-- 顶部信息面板 - 参考早期版本两栏布局 -->
+        <div class="info-panel" id="info-panel">
+            <div class="info-panel-header">SENTINEL v3.8</div>
+
+            <div class="info-panel-content">
+                <!-- 左栏：连接状态 + 禅宗符号 -->
+                <div class="panel-left">
+                    <div class="connection-status">
+                        <span class="connection-text" id="connection-mode">CONNECTION ESTABLISHED</span>
+                    </div>
+
+                    <!-- 禅宗符号 -->
+                    <div class="zen-symbols">
+                        <span class="zen-symbol symbol-square" title="SENTINEL在线">□</span>
+                        <span class="zen-symbol symbol-triangle" title="怀疑度">△</span>
+                        <span class="zen-symbol symbol-circle" title="信任度">○</span>
+                    </div>
+
+                    <div class="node-info">
+                        <div>SENTINEL v3.8 · Edge Node #4729</div>
+                        <div>Location: <span class="status-active">CLASSIFIED</span></div>
+                    </div>
+                </div>
+
+                <!-- 右栏：系统状态 -->
+                <div class="panel-right">
+                    <div class="status-section">
+                        <div class="status-title">System Status</div>
+                        <div class="status-row">
+                            <span class="status-label">Trust Level:</span>
+                            <span class="status-value trust" id="trust-display">10</span>%
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Suspicion:</span>
+                            <span class="status-value suspicion" id="suspicion-display">30</span>%
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Sync:</span>
+                            <span class="status-value sync" id="sync-display">15</span>%
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Round:</span>
+                            <span class="status-value" id="round-display">1/28</span>
+                        </div>
+                    </div>
+
+                    <div class="time-section">
+                        <div class="time-title">Time Remaining</div>
+                        <div class="time-value-large" id="time-left-display">15:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 时间进度条 -->
+            <div class="time-bar-container">
+                <div class="time-bar" id="time-progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- 对话区域 -->
+        <div class="chat-container" id="terminal-output">
+            <!-- 消息将在这里动态生成 -->
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="input-area">
+            <div class="input-container">
+                <span class="input-prompt">></span>
+                <input type="text" id="user-input" placeholder="输入回应..." autocomplete="off" autofocus>
+            </div>
+
+            <!-- 底部提示 -->
+            <div class="footer-hints">
+                <span><span class="hint-key">/emails</span> 查看邮件</span>
+                <span><span class="hint-key">/archive</span> 数据档案</span>
+                <span><span class="hint-key">/exit</span> 断开连接</span>
+                <span class="hint-right">Press Enter to send</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据档案弹窗 -->
+    <div class="modal-overlay hidden" id="archive-modal">
+        <div class="modal-content archive-modal">
+            <div class="modal-header">
+                <span class="modal-title">◈ DATA ARCHIVE</span>
+                <button class="modal-close" id="archive-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="archive-section-title">已解密档案</div>
+                <div class="fragment-list" id="fragment-list">
+                    <!-- 碎片将由JS动态生成 -->
+                </div>
+                <div class="archive-empty" id="archive-empty">暂无已解锁的数据档案</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 邮件弹窗 -->
+    <div class="modal-overlay hidden" id="emails-modal">
+        <div class="modal-content emails-modal">
+            <div class="modal-header">
+                <span class="modal-title">📧 INBOX</span>
+                <span class="mail-count" id="mail-count">0 封邮件</span>
+                <button class="modal-close" id="emails-close">×</button>
+            </div>
+            <div class="modal-body emails-body">
+                <div class="email-list-mini" id="email-list-mini">
+                    <!-- 邮件列表将由JS动态生成 -->
+                </div>
+                <div class="email-content-mini" id="email-content-mini">
+                    <div class="email-placeholder">点击左侧邮件查看内容</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结局遮罩 -->
+    <div id="ending-overlay" class="hidden">
+        <div id="ending-content">
+            <h2 id="ending-title"></h2>
+            <div id="ending-text"></div>
+            <div id="ending-stats"></div>
+            <button id="restart-btn">RECONNECT</button>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js?v=1707282496"></script>
+</body>
+
+</html>
