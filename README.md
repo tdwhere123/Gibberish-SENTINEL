@@ -7,6 +7,7 @@
 - 进度与上下文胶囊: `progress.md`
 - 主入口: `js/main.js`
 - 配置中心: `js/config.js`（双模型配置已实现）
+- 运行时 API 配置: `js/runtime-config.js`（开局 API CONFIG 页签 + 本地持久化 + 连通性测试）
 - 状态核心: `js/game-state.js`（v3 已实现）
 - 话题联动: `js/topic-system.js`（TASK-06 已实现）
 - 对话模块: `js/ai-dialogue.js`（TASK-07 已实现）
@@ -74,7 +75,7 @@ main.js 统一分发
 
 ### `js/config.js`
 
-- 状态: 已实现（TASK-03）
+- 状态: 已实现（TASK-03，已去除硬编码密钥）
 - 核心配置:
 - `MAIN_*` 主模型
 - `JUDGE_*` 判断模型
@@ -82,6 +83,15 @@ main.js 统一分发
 - `TIME_INFLUENCE`
 - `SAVE_KEY = sentinel_save_v3`
 - 兼容别名: `API_URL` / `API_KEY` / `MODEL` / `MAX_ROUNDS`
+
+
+### `js/runtime-config.js`
+
+- 状态: 已实现（TASK-21）
+- `getRuntimeConfig()` / `saveRuntimeConfig(patch)`
+- `testRuntimeConnection(inputConfig)`（最小 chat/completions 探活）
+- `buildLLMRequestOptions()`（统一请求参数注入）
+- 读取优先级: 用户本地配置 > `window.__APP_CONFIG__` > `js/config.js` 默认值
 
 ### `js/ai-dialogue.js`
 
@@ -166,7 +176,7 @@ main.js 统一分发
 
 ### `js/emails.js`
 
-- 状态: 已实现（TASK-13）
+- 状态: 已实现（TASK-13 + TASK-21）
 - `initEmailSystem()`
 - `triggerUrgentEmail(email, callbacks)`（FIFO 队列）
 - 关闭路径（按钮/Esc）均触发 `onResolved`
@@ -207,6 +217,7 @@ main.js 统一分发
 - 输入阶段联动 `evaluateMissionTasksFromText()` 与碎片解锁
 - 回归兼容:
 - 保留 `window.render_game_to_text`
+- 新增运行时提示：输入区模型状态横幅 + 新邮件 toast + `/emails` 未读角标
 
 ## 任务分阶段
 

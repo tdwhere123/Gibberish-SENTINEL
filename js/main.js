@@ -30,6 +30,7 @@ import {
     renderArchiveModalContent
 } from './ui-extensions.js';
 import { interruptManager, INTERRUPT_TYPES, INTERRUPT_SOURCES } from './interrupt-manager.js';
+import { getConnectionSummary, isModelReady } from './runtime-config.js';
 import {
     resolveRouteFromConnectionMode,
     initMissionForRoute,
@@ -44,11 +45,38 @@ let isProcessing = false;
 let finalQuestionActive = false;
 let pendingEndingType = null;
 
+function updateModelStatusBanner() {
+    const el = document.getElementById('model-status-banner');
+    if (!el) return;
+    const text = getConnectionSummary();
+    el.textContent = text;
+    el.classList.toggle('warn', !isModelReady());
+}
+
+function updateMailHintBadge() {
+    const el = document.getElementById('mail-hint');
+    if (!el) return;
+    const state = getEmailState();
+    const unread = (state?.emails || []).filter(e => !e.read).length;
+    el.innerHTML = `<span class="hint-key">/emails</span> 查看邮件${unread > 0 ? ` (Mail ${unread})` : ''}`;
+}
+
+function showMailToast(message) {
+    const n = document.createElement('div');
+    n.className = 'new-mail-indicator';
+    n.textContent = message;
+    document.body.appendChild(n);
+    setTimeout(() => n.remove(), 3200);
+}
+
+
 async function initPage() {
     checkAPIKey();
     bindModalEvents();
     initEmailSystem();
     bindConnectButton(startGame);
+    updateModelStatusBanner();
+    updateMailHintBadge();
     console.log('[Main] 页面初始化完成（邮件阶段）');
 }
 
@@ -184,6 +212,8 @@ async function startGame(connectMode = null) {
     updateSyncDisplay(gameState.syncRate);
     updateZenSymbols(gameState);
     UI.enableInput();
+    updateModelStatusBanner();
+    updateMailHintBadge();
 
     setTimeout(() => {
         sendRouteBriefEmail().catch(err => console.warn('[Main] sendRouteBriefEmail failed:', err));
@@ -223,6 +253,8 @@ async function sendRouteBriefEmail() {
     });
 
     await UI.addMessage(`[SYSTEM] 收到新邮件: ${email.subject} (输入 /emails 查看)`, 'system');
+    updateMailHintBadge();
+    showMailToast('你收到 1 封新邮件，输入 /emails 查看');
 }
 
 async function showIntro(connectMode = null) {
@@ -402,6 +434,8 @@ async function pushGeneratedEmail(roleId, contextHint, source = 'judge', options
         isImportant: roleId === 'mystery'
     });
     await UI.addMessage(`[SYSTEM] 收到新邮件: ${email.subject} (输入 /emails 查看)`, 'system');
+    updateMailHintBadge();
+    showMailToast('你收到 1 封新邮件，输入 /emails 查看');
 }
 
 async function runJudgePipeline(userInput, aiResult) {
@@ -669,6 +703,7 @@ async function handleSend() {
 
             if (result.action === 'OPEN_EMAILS') {
                 openEmailsModal();
+                updateMailHintBadge();
                 isProcessing = false;
                 UI.enableInput();
                 return;

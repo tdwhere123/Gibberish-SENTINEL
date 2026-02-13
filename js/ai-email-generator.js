@@ -8,6 +8,7 @@
  */
 
 import { CONFIG } from './config.js';
+import { buildLLMRequestOptions } from './runtime-config.js';
 import { getCharacterCard } from './character-cards.js';
 
 const worldviewCache = new Map();
@@ -176,14 +177,20 @@ async function callMainModel(prompt, maxRetries = 2) {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            const response = await fetch(CONFIG.MAIN_API_URL || CONFIG.API_URL, {
+            const runtime = buildLLMRequestOptions({
+                url: CONFIG.MAIN_API_URL || CONFIG.API_URL,
+                apiKey: CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
+                model: CONFIG.MAIN_MODEL || CONFIG.MODEL
+            });
+
+            const response = await fetch(runtime.url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${CONFIG.MAIN_API_KEY || CONFIG.API_KEY}`
+                    'Authorization': `Bearer ${runtime.apiKey}`
                 },
                 body: JSON.stringify({
-                    model: CONFIG.MAIN_MODEL || CONFIG.MODEL,
+                    model: runtime.model,
                     messages: [
                         { role: 'system', content: '你是结构化邮件生成器，只返回 JSON。' },
                         { role: 'user', content: prompt }

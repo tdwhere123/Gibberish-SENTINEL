@@ -8,6 +8,7 @@
  */
 
 import { CONFIG } from './config.js';
+import { buildLLMRequestOptions } from './runtime-config.js';
 import { sanitizeInput } from './input-sanitizer.js';
 import { getNextTopic } from './topic-system.js';
 import { getEmotionState } from './emotion-system.js';
@@ -158,8 +159,14 @@ function buildRequestBody(input, gameState) {
     const systemPrompt = buildSystemPrompt(gameState);
     const historyText = serializeHistory(dialogueHistory);
 
+    const runtime = buildLLMRequestOptions({
+        url: CONFIG.MAIN_API_URL || CONFIG.API_URL,
+        apiKey: CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
+        model: CONFIG.MAIN_MODEL || CONFIG.MODEL
+    });
+
     return {
-        model: CONFIG.MAIN_MODEL || CONFIG.MODEL,
+        model: runtime.model,
         messages: [
             { role: 'system', content: systemPrompt },
             {
@@ -167,8 +174,8 @@ function buildRequestBody(input, gameState) {
                 content: `[历史对话]\n${historyText || '(无)'}\n\n[用户输入]\n${input}\n\n请按协议回复。`
             }
         ],
-        temperature: 0.8,
-        max_tokens: 1200
+        temperature: runtime.temperature,
+        max_tokens: runtime.max_tokens
     };
 }
 
@@ -208,11 +215,17 @@ export async function generateDialogueReply(input, gameState, options = {}) {
     let lastError = null;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            const response = await fetch(CONFIG.MAIN_API_URL || CONFIG.API_URL, {
+            const runtime = buildLLMRequestOptions({
+                url: CONFIG.MAIN_API_URL || CONFIG.API_URL,
+                apiKey: CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
+                model: CONFIG.MAIN_MODEL || CONFIG.MODEL
+            });
+
+            const response = await fetch(runtime.url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${CONFIG.MAIN_API_KEY || CONFIG.API_KEY}`
+                    'Authorization': `Bearer ${runtime.apiKey}`
                 },
                 body: JSON.stringify(requestBody)
             });

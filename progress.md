@@ -30,6 +30,7 @@
 - [x] TASK-18 更新 `index.html` 并删除 `js/ai-handler.js`
 - [x] TASK-19 文档收敛（若新增 `CLAUDE.md` 则同步）
 - [ ] TASK-20 全流程验证与回归
+- [x] TASK-21 开局 API CONFIG 注入与邮件提示增强（基于 docs/product-iteration-plan.md）
 
 ## Context Capsules
 
@@ -47,6 +48,14 @@
 - 执行 TASK-01（worldview 拆分）
 
 ## 接口变更日志
+
+- 2026-02-13:
+- 新增 js/runtime-config.js：运行时 API 配置持久化、连接测试、统一注入入口
+- js/config.js 移除硬编码 URL/KEY，改为空默认并保留模型缺省值
+- js/emails.js 增加 API CONFIG 页签、表单、保存与 Test Connection 流程
+- js/main.js 增加模型状态横幅、新邮件 toast、`/emails` 未读角标更新
+- index.html 增加模型状态横幅与邮件提示锚点
+- ai-dialogue / ai-judge / ai-email-generator / ai-ending 改为通过 runtime 配置注入请求参数
 
 - 2026-02-12:
 - 新增文档化接口契约（目标态）
