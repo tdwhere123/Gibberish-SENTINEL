@@ -220,7 +220,7 @@ function ensureMailboxShell(mailboxContainer) {
                     </div>
                     <div class="desktop-icon">
                         <span class="icon-dot"></span>
-                        <span class="icon-label">LOGS</span>
+                        <span class="icon-label">API CONFIG</span>
                     </div>
                     <div class="desktop-icon">
                         <span class="icon-dot"></span>
