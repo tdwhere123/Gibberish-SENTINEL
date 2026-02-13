@@ -3,6 +3,8 @@
  * 在游戏开始前展示背景故事
  */
 
+import { getRuntimeConfig, saveRuntimeConfig, testRuntimeConnection } from './runtime-config.js';
+
 // 邮件数据（v2.0 开场）
 const EMAILS = [
     {
@@ -184,6 +186,8 @@ export function initEmailSystem() {
     console.log('[Emails] 初始化邮件系统...');
     ensureMailboxShell(mailboxContainer);
     bindModalEvents();
+    bindDesktopTabs();
+    bindApiConfigPanel();
 
     // 使用双重requestAnimationFrame确保DOM完全更新后再渲染
     requestAnimationFrame(() => {
@@ -214,15 +218,15 @@ function ensureMailboxShell(mailboxContainer) {
             </div>
             <div class="desktop-area">
                 <div class="desktop-icons">
-                    <div class="desktop-icon active">
+                    <div class="desktop-icon active" data-tab="mail">
                         <span class="icon-dot"></span>
                         <span class="icon-label">MAIL</span>
                     </div>
-                    <div class="desktop-icon">
+                    <div class="desktop-icon" data-tab="api">
                         <span class="icon-dot"></span>
                         <span class="icon-label">API CONFIG</span>
                     </div>
-                    <div class="desktop-icon">
+                    <div class="desktop-icon" data-tab="sys">
                         <span class="icon-dot"></span>
                         <span class="icon-label">SYS</span>
                     </div>
@@ -241,7 +245,7 @@ function ensureMailboxShell(mailboxContainer) {
                             <div class="mailbox-title">INBOX</div>
                             <div class="mailbox-date">2048.11.23</div>
                         </div>
-                        <div class="mailbox-content">
+                        <div class="mailbox-content" id="mailbox-tab-mail">
                             <div class="email-list-panel">
                                 <div class="email-list" id="email-list"></div>
                             </div>
@@ -249,6 +253,23 @@ function ensureMailboxShell(mailboxContainer) {
                                 <div class="email-content" id="email-content">
                                     <div class="email-placeholder">Select a message to view.</div>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="mailbox-content hidden" id="mailbox-tab-api">
+                            <div class="api-config-panel">
+                                <div class="api-config-title">OPENAI-COMPATIBLE API CONFIG</div>
+                                <label>Base URL<input id="api-base-url" type="text" placeholder="https://.../v1/chat/completions"></label>
+                                <label>API Key<input id="api-key" type="password" placeholder="sk-..."></label>
+                                <label>Model<input id="api-model" type="text" placeholder="gpt-4o-mini"></label>
+                                <div class="api-config-row">
+                                    <label>temperature<input id="api-temperature" type="number" step="0.1" min="0" max="2"></label>
+                                    <label>max_tokens<input id="api-max-tokens" type="number" min="16" max="4000"></label>
+                                </div>
+                                <div class="api-config-actions">
+                                    <button id="api-save-btn" class="connect-btn">保存配置</button>
+                                    <button id="api-test-btn" class="connect-btn">Test Connection</button>
+                                </div>
+                                <div class="api-config-status" id="api-config-status">状态：未配置</div>
                             </div>
                         </div>
                         <div class="mailbox-footer">
@@ -268,6 +289,82 @@ function ensureMailboxShell(mailboxContainer) {
     `;
 
     mailboxContainer.dataset.shellReady = 'true';
+}
+
+
+function bindDesktopTabs() {
+    const icons = document.querySelectorAll('.desktop-icon');
+    const tabMail = document.getElementById('mailbox-tab-mail');
+    const tabApi = document.getElementById('mailbox-tab-api');
+    if (!icons.length || !tabMail || !tabApi) return;
+
+    icons.forEach(icon => {
+        if (icon.dataset.bound === 'true') return;
+        icon.dataset.bound = 'true';
+        icon.addEventListener('click', () => {
+            icons.forEach(i => i.classList.remove('active'));
+            icon.classList.add('active');
+            const tab = icon.dataset.tab;
+            tabMail.classList.toggle('hidden', tab !== 'mail');
+            tabApi.classList.toggle('hidden', tab !== 'api');
+        });
+    });
+}
+
+function bindApiConfigPanel() {
+    const baseUrlInput = document.getElementById('api-base-url');
+    const apiKeyInput = document.getElementById('api-key');
+    const modelInput = document.getElementById('api-model');
+    const temperatureInput = document.getElementById('api-temperature');
+    const maxTokensInput = document.getElementById('api-max-tokens');
+    const saveBtn = document.getElementById('api-save-btn');
+    const testBtn = document.getElementById('api-test-btn');
+    const statusEl = document.getElementById('api-config-status');
+
+    if (!baseUrlInput || !apiKeyInput || !modelInput || !saveBtn || !testBtn || !statusEl) return;
+
+    const syncForm = () => {
+        const cfg = getRuntimeConfig();
+        baseUrlInput.value = cfg.baseUrl;
+        apiKeyInput.value = cfg.apiKey;
+        modelInput.value = cfg.model;
+        temperatureInput.value = String(cfg.temperature);
+        maxTokensInput.value = String(cfg.maxTokens);
+        statusEl.textContent = `状态：${cfg.lastTestStatus}`;
+    };
+
+    syncForm();
+
+    if (saveBtn.dataset.bound !== 'true') {
+        saveBtn.dataset.bound = 'true';
+        saveBtn.addEventListener('click', () => {
+            const cfg = saveRuntimeConfig({
+                baseUrl: baseUrlInput.value,
+                apiKey: apiKeyInput.value,
+                model: modelInput.value,
+                temperature: Number(temperatureInput.value || 0.8),
+                maxTokens: Number(maxTokensInput.value || 1200),
+                tested: false,
+                lastTestStatus: '未配置'
+            });
+            statusEl.textContent = `状态：${cfg.lastTestStatus}`;
+        });
+    }
+
+    if (testBtn.dataset.bound !== 'true') {
+        testBtn.dataset.bound = 'true';
+        testBtn.addEventListener('click', async () => {
+            statusEl.textContent = '状态：连接测试中...';
+            const result = await testRuntimeConnection({
+                baseUrl: baseUrlInput.value,
+                apiKey: apiKeyInput.value,
+                model: modelInput.value,
+                temperature: Number(temperatureInput.value || 0.8),
+                maxTokens: Number(maxTokensInput.value || 1200)
+            });
+            statusEl.textContent = `状态：${result.lastTestStatus}${result.lastError ? ` | ${result.lastError}` : ''}`;
+        });
+    }
 }
 
 function startBootSequence() {

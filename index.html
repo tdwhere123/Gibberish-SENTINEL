@@ -85,6 +85,7 @@
 
         <!-- 输入区域 -->
         <div class="input-area">
+            <div class="model-status-banner" id="model-status-banner">模型未验证，回复可能失败</div>
             <div class="input-container">
                 <span class="input-prompt">></span>
                 <input type="text" id="user-input" placeholder="输入回应..." autocomplete="off" autofocus>
@@ -92,7 +93,7 @@
 
             <!-- 底部提示 -->
             <div class="footer-hints">
-                <span><span class="hint-key">/emails</span> 查看邮件</span>
+                <span id="mail-hint"><span class="hint-key">/emails</span> 查看邮件</span>
                 <span><span class="hint-key">/archive</span> 数据档案</span>
                 <span><span class="hint-key">/exit</span> 断开连接</span>
                 <span class="hint-right">Press Enter to send</span>

@@ -8,14 +8,14 @@
  */
 export const CONFIG = {
     // Main model (dialogue / email / ending)
-    MAIN_API_URL: 'https://open.cherryin.ai/v1/chat/completions',
-    MAIN_API_KEY: 'sk-sMD5HWXXZCWL0JOojrmDpL8Q0pjyP8DpwBfKYNVukBE83Zqg',
-    MAIN_MODEL: 'anthropic/claude-haiku-4.5',
+    MAIN_API_URL: '',
+    MAIN_API_KEY: '',
+    MAIN_MODEL: 'gpt-4o-mini',
 
     // Judge model (deviation / mission checklist)
-    JUDGE_API_URL: 'https://open.cherryin.ai/v1/chat/completions',
-    JUDGE_API_KEY: 'sk-sMD5HWXXZCWL0JOojrmDpL8Q0pjyP8DpwBfKYNVukBE83Zqg',
-    JUDGE_MODEL: 'anthropic/claude-haiku-4.5',
+    JUDGE_API_URL: '',
+    JUDGE_API_KEY: '',
+    JUDGE_MODEL: 'gpt-4o-mini',
 
     // Game timing
     GAME_DURATION: 900,
@@ -44,8 +44,8 @@ export const CONFIG = {
     },
 
     // Legacy aliases for v1.3 modules
-    API_URL: 'https://open.cherryin.ai/v1/chat/completions',
-    API_KEY: 'sk-sMD5HWXXZCWL0JOojrmDpL8Q0pjyP8DpwBfKYNVukBE83Zqg',
-    MODEL: 'anthropic/claude-haiku-4.5',
+    API_URL: '',
+    API_KEY: '',
+    MODEL: 'gpt-4o-mini',
     MAX_ROUNDS: 30
 };

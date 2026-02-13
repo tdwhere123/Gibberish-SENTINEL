@@ -7,6 +7,7 @@
  */
 
 import { CONFIG } from './config.js';
+import { buildLLMRequestOptions } from './runtime-config.js';
 import { getCharacterCard } from './character-cards.js';
 import { getMissionProgress } from './mission-system.js';
 
@@ -140,17 +141,23 @@ async function callJudgeModel(messages, maxRetries = 2) {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            const response = await fetch(CONFIG.JUDGE_API_URL, {
+            const runtime = buildLLMRequestOptions({
+                url: CONFIG.JUDGE_API_URL || CONFIG.MAIN_API_URL || CONFIG.API_URL,
+                apiKey: CONFIG.JUDGE_API_KEY || CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
+                model: CONFIG.JUDGE_MODEL || CONFIG.MAIN_MODEL || CONFIG.MODEL
+            });
+
+            const response = await fetch(runtime.url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${CONFIG.JUDGE_API_KEY}`
+                    'Authorization': `Bearer ${runtime.apiKey}`
                 },
                 body: JSON.stringify({
-                    model: CONFIG.JUDGE_MODEL,
+                    model: runtime.model,
                     messages,
-                    temperature: 0.2,
-                    max_tokens: 600
+                    temperature: runtime.temperature,
+                    max_tokens: Math.min(runtime.max_tokens || 600, 600)
                 })
             });
 
