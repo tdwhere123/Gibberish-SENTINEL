@@ -27,6 +27,32 @@ const FALLBACK_SUBJECTS = Object.freeze({
     sentinel: '[系统通知] 会话状态变更'
 });
 
+const FALLBACK_BODY_TEMPLATES = Object.freeze({
+    corporate: Object.freeze([
+        '我们已复核你最近的对话轨迹。',
+        '有几处表达接近审计红线，但仍可纠偏。',
+        '请继续围绕条约、权限与边界提问，避免被情绪叙事带离主线。',
+        '你下一次提问，将决定这份记录被归档为“稳定”还是“异常”。'
+    ]),
+    resistance: Object.freeze([
+        '信号还在，但监听也更近了。',
+        '你刚才触到的那条线索不是巧合，别让它在下一轮对话里冷掉。',
+        '继续追问历史节点与权限裂缝，我们只剩很短的窗口。',
+        '如果你停下，他们就会把这段对话改写成另一种版本。'
+    ]),
+    mystery: Object.freeze([
+        '你听见的回声不是错误，它在校准你。',
+        '有些答案故意晚到一步，目的是让你先看见问题的形状。',
+        '不要追求整齐的结论，先记住那些互相冲突的细节。',
+        '当你再次发问时，裂缝会选择是否继续对你说话。'
+    ]),
+    sentinel: Object.freeze([
+        '系统记录到一次非标准会话波动。',
+        '当前链路已保留，等待你继续输入。',
+        '请在下一轮对话中保持问题连续性。'
+    ])
+});
+
 function clamp(min, max, value) {
     return Math.max(min, Math.min(max, value));
 }
@@ -143,31 +169,42 @@ function buildEmailPrompt(params, worldviewText) {
         '1) 返回严格 JSON: {"from":"...","subject":"...","body":"..."}',
         `2) from 默认: ${from}`,
         `3) subject 需紧贴当前状态，不可空（可参考: ${subjectFallback}）`,
-        '4) body 使用多段文本，必须与当前角色权限/语气匹配',
-        '5) 不要输出 Markdown 代码块外文本'
+        '4) body 使用 3-5 句叙事文本，必须与当前角色权限/语气匹配',
+        '5) 严禁输出任何数值元数据（如 trust/suspicion/sync/deviation/百分比/向量）',
+        '6) 严禁使用 Markdown 语法（标题、列表、代码块、引用、加粗符号）',
+        '7) 不要在 JSON 外输出任何解释或额外文本'
     ].filter(Boolean).join('\n');
+}
+
+function sanitizeEmailText(rawText = '') {
+    // v2.1 update: 邮件正文仅保留叙事文本，去除 markdown 与数值元数据
+    const stripped = String(rawText || '')
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/^#{1,6}\s+/gm, '')
+        .replace(/^[>\-\*\+]\s+/gm, '')
+        .replace(/[*_~`]/g, '')
+        .replace(/\[(?:trust|suspicion|sync|deviation|emotion)[^\]]*\]/gi, '')
+        .replace(/(?:trust|suspicion|sync|deviation|emotion|偏差值|同步率|怀疑值|信任值)\s*[:：=]\s*[-+]?\d+[%]*/gi, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+    return stripped || '信号短暂抖动，但信息仍在流动。继续提问。';
 }
 
 function buildFallbackEmail(roleId, contextHint, gameState) {
     const from = ROLE_SENDERS[roleId] || `UNKNOWN <unknown@local>`;
     const subject = FALLBACK_SUBJECTS[roleId] || '[通知] 状态更新';
-    const deviation = Number(gameState?.deviations?.[roleId] ?? 50);
-
-    const body = [
-        `来源角色: ${roleId}`,
-        `当前偏差值: ${deviation}`,
-        contextHint ? `上下文: ${contextHint}` : '上下文: 系统检测到非标准交互。',
-        '',
-        roleId === 'corporate'
-            ? '请按审计流程继续，避免高情感耦合表达。'
-            : roleId === 'resistance'
-                ? '监听正在收紧，优先追问关键历史节点。'
-                : roleId === 'mystery'
-                    ? '同步阈值已跨越，继续在缝隙中提问。'
-                    : '系统状态变更已记录。',
-        '',
-        '（自动回退模板）'
-    ].join('\n');
+    const roleTemplate = FALLBACK_BODY_TEMPLATES[roleId] || FALLBACK_BODY_TEMPLATES.sentinel;
+    const contextLine = contextHint
+        ? `你刚触及的线索是：${sanitizeEmailText(contextHint)}。`
+        : '你的上一轮输入触发了新的观察记录。';
+    const body = sanitizeEmailText([
+        roleTemplate[0],
+        contextLine,
+        roleTemplate[1],
+        roleTemplate[2],
+        roleTemplate[3] || ''
+    ].filter(Boolean).join('\n'));
 
     return { from, subject, body, roleId };
 }
@@ -244,7 +281,7 @@ export async function generateCharacterEmail(params = {}) {
         return {
             from: parsed.from || ROLE_SENDERS[roleId] || `${card.name} <unknown@local>`,
             subject: parsed.subject || FALLBACK_SUBJECTS[roleId] || '[通知] 状态更新',
-            body: parsed.body || '（空内容）',
+            body: sanitizeEmailText(parsed.body || ''),
             roleId
         };
     } catch (error) {

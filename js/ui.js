@@ -3,6 +3,7 @@
  */
 
 import { interruptManager, INTERRUPT_TYPES, INTERRUPT_SOURCES } from './interrupt-manager.js';
+import { getCharacterVisualEffects } from './character-cards.js';
 
 let elements = {};
 
@@ -16,6 +17,16 @@ const glitchState = {
 };
 
 const CONFUSION_REGEX = /(\?{2,}|\bwhy\b|\bwho\b|\bwhat\b|\bunknown\b|\berror\b|\bparadox\b|\bidentity\b|\bconfus)/i;
+const ROLE_EFFECT_CLASSES = [
+    'fx-role--corporate-email',
+    'fx-role--corporate-insertion',
+    'fx-role--mystery-email',
+    'fx-role--mystery-insertion',
+    'fx-role--resistance-email',
+    'fx-role--resistance-insertion',
+    'fx-role--sentinel-email',
+    'fx-role--sentinel-insertion'
+];
 
 export function initUI() {
     console.log('[UI] 开始初始化UI元素...');
@@ -134,6 +145,7 @@ function renderInterruptMessage(event) {
 
     elements.terminalOutput.appendChild(msgDiv);
     scrollToBottom();
+    triggerCharacterEffect(event.roleId || event.source?.id || 'mystery', 'insertion');
 
     // 设置自动淡出
     if (event.duration && event.duration > 0) {
@@ -679,6 +691,9 @@ export function flashScreen() {
 }
 
 export function applyRoleVisualEffect(roleId, effectHint = '') {
+    const inferredTrigger = String(effectHint || '').toLowerCase().includes('email') ? 'email' : 'insertion';
+    triggerCharacterEffect(roleId, inferredTrigger);
+
     const body = document.body;
     if (!body) return;
 
@@ -709,6 +724,49 @@ export function applyRoleVisualEffect(roleId, effectHint = '') {
     setTimeout(() => {
         body.classList.remove(cls);
     }, 1200);
+}
+
+function clearRoleEffectClasses(body) {
+    ROLE_EFFECT_CLASSES.forEach(cls => body.classList.remove(cls));
+}
+
+export function triggerCharacterEffect(roleId, triggerType = 'generic') {
+    const body = document.body;
+    if (!body || !roleId) return;
+
+    const roleEffects = getCharacterVisualEffects(roleId);
+    if (!Array.isArray(roleEffects) || roleEffects.length === 0) return;
+
+    clearRoleEffectClasses(body);
+
+    const classMap = {
+        corporate: {
+            email: 'fx-role--corporate-email',
+            insertion: 'fx-role--corporate-insertion'
+        },
+        mystery: {
+            email: 'fx-role--mystery-email',
+            insertion: 'fx-role--mystery-insertion'
+        },
+        resistance: {
+            email: 'fx-role--resistance-email',
+            insertion: 'fx-role--resistance-insertion'
+        },
+        sentinel: {
+            email: 'fx-role--sentinel-email',
+            insertion: 'fx-role--sentinel-insertion'
+        }
+    };
+
+    const roleMap = classMap[roleId];
+    if (!roleMap) return;
+    const cls = roleMap[triggerType] || roleMap.insertion;
+    if (!cls) return;
+
+    body.classList.add(cls);
+    setTimeout(() => {
+        body.classList.remove(cls);
+    }, 1300);
 }
 
 /**

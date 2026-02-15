@@ -151,6 +151,7 @@ const BASE_EMAIL_COUNT = EMAILS.length;
 let urgentMode = false;
 let urgentQueue = [];
 let activeUrgent = null;
+let pendingUrgentCallbacks = [];
 let bootRunCount = 0;
 let clockTimer = null;
 let connectCallback = null;
@@ -455,6 +456,7 @@ function stopDesktopClock() {
  * Force urgent emails with queue mode.
  */
 export function triggerUrgentEmail(email, callbacks = {}) {
+    // v2.1 update: 紧急邮件统一进入收件箱，不再强制切屏打断
     const urgentEmail = {
         id: email.id || Date.now(),
         from: email.from || 'SENTINEL-ALERT',
@@ -466,12 +468,45 @@ export function triggerUrgentEmail(email, callbacks = {}) {
         isUrgent: true
     };
 
-    urgentQueue.push({
-        email: urgentEmail,
-        onResolved: callbacks.onResolved || null,
-        onRead: callbacks.onRead || null
-    });
-    startNextUrgentIfNeeded();
+    EMAILS.unshift(urgentEmail);
+    allEmailsRead = false;
+
+    if (callbacks.onRead || callbacks.onResolved) {
+        pendingUrgentCallbacks.push({
+            id: urgentEmail.id,
+            onResolved: callbacks.onResolved || null,
+            onRead: callbacks.onRead || null
+        });
+    }
+
+    const emailList = document.getElementById('email-list');
+    if (emailList && emailList.offsetParent !== null) {
+        renderEmailList();
+    } else {
+        updateConnectButton();
+    }
+
+    return urgentEmail;
+}
+
+export async function consumePendingUrgentCallbacks() {
+    if (pendingUrgentCallbacks.length === 0) return 0;
+
+    const pending = pendingUrgentCallbacks.splice(0);
+    for (const item of pending) {
+        try {
+            if (typeof item.onRead === 'function') {
+                await item.onRead();
+            }
+            if (typeof item.onResolved === 'function') {
+                await item.onResolved({ reason: 'emails_opened' });
+            }
+        } catch (error) {
+            console.warn('[Emails] consumePendingUrgentCallbacks failed:', error);
+        }
+    }
+
+    return pending.length;
 }
 
 function startNextUrgentIfNeeded() {
@@ -745,6 +780,7 @@ export function resetEmails() {
     urgentMode = false;
     urgentQueue = [];
     activeUrgent = null;
+    pendingUrgentCallbacks = [];
     bootRunCount = 0;
     stopDesktopClock();
 

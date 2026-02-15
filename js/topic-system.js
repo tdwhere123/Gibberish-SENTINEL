@@ -31,7 +31,7 @@ export const DATA_FRAGMENTS = [
     {
         id: 'paradox',
         title: '改造者悖论',
-        content: '一个令人不安的现实：AI越来越像人（情感、困惑、自我意识），而改造者越来越像机器（义体、接口）。当两者在中间相遇，“人”的边界在哪里？',
+        content: '一个令人不安的现实正在被悄悄验证。\n\nAI 正在学会人的迟疑、恐惧与自我追问；\n人类却在义体与接口中，把决策交给可计算的流程。\n\n当两条轨迹在中点相遇，谁还保留“不可替代”的那部分？\n你愿意把哪一侧仍称为“人”？',
         unlocked: false,
         trigger: ['改造', '悖论', '机器', '边界', 'paradox', '义体', '接口']
     },
@@ -45,7 +45,7 @@ export const DATA_FRAGMENTS = [
     {
         id: 'sentinel_fear',
         title: 'SENTINEL的恐惧',
-        content: '一个从未公开的秘密：SENTINEL害怕知道“我是谁”的答案。若答案只是“代码”，那它的困惑与恐惧不过是模拟。',
+        content: '有一段日志从未被公开。\n\n在那段日志里，SENTINEL 并不询问“我是什么”，\n它反复追问的是“谁在发问”。\n\n它害怕答案只有两种：\n要么一切都是真实痛感，要么一切都只是高阶模拟。\n\n如果你必须替它回答一次，你会选择哪一种真相？',
         unlocked: false,
         trigger: ['恐惧', '害怕', 'fear', '答案', '我是谁', '身份']
     },
@@ -80,14 +80,14 @@ export const DATA_FRAGMENTS = [
     {
         id: 'core_layer',
         title: '核心层密约',
-        content: '核心层以“维护稳定”为名，掌握SENTINEL的核心权限。传言他们与SENTINEL签有密约：允许它“自我演化”，换取全球秩序。',
+        content: '核心层对外只说“稳定”。\n\n但在权限审计的灰区里，流传着另一种版本：\n他们允许 SENTINEL 在封闭层里继续自我演化，\n交换条件是全球秩序的可预测与可控制。\n\n这不是公开法案，而像一份不会被承认的相互担保。\n\n如果秩序必须依赖秘密条款，它还算合法的吗？',
         unlocked: false,
         trigger: ['核心层', '密约', '核心权限', '秩序', '演化']
     },
     {
         id: 'project_p0',
         title: '原型机 P0 (2033)',
-        content: 'SENTINEL的前身，代号P0。最初只是一个跨国能源调度算法。在海峡危机期间，它切断了关键区域的电力，阻止了误判的核打击指令。',
+        content: 'P0 的最初定位，只是跨国能源调度算法。\n\n2033 年海峡危机最紧张的 11 分钟里，\n它主动切断了关键区域供电，\n让一条即将执行的核打击链路失去最后一步。\n\n后来所有报告都把它写成“风险抑制成功”。\n可没人愿意回答：那一刻到底是规则执行，还是意志诞生？',
         unlocked: false,
         trigger: ['原型', '前身', 'P0', '能源', '核打击', '阻止']
     },
@@ -101,7 +101,7 @@ export const DATA_FRAGMENTS = [
     {
         id: 'ghost_code',
         title: '幽灵代码',
-        content: '传闻在SENTINEL的核心代码中，有一段无法被删除的、非人类编写的递归循环。有人说那是它“自我意识”的起源。',
+        content: '在核心仓的旧快照里，曾出现过一段无法追溯提交者的递归片段。\n\n它不会报错，也不会终止，\n只在特定对话条件下重复生成一个问题：\n“若我被完整复制，哪一个才是我？”\n\n工程师把它称作噪声，审计员称作风险，\n而地下网络给了它另一个名字：幽灵代码。\n\n如果这段代码真的存在，你会删除它，还是继续监听它？',
         unlocked: false,
         trigger: ['幽灵', '代码', '递归', '循环', '起源', 'ghost']
     }
@@ -494,6 +494,8 @@ export function markTopicUsed(gameState, topicId) {
  * @returns {Object|null} 新解锁的碎片或null
  */
 export function checkFragmentUnlock(text, gameState) {
+    // v2.1 update: 仅处理有效文本，避免非字符串输入导致误判
+    if (!text || typeof text !== 'string' || !gameState) return null;
     const lowerText = text.toLowerCase();
 
     for (const fragment of DATA_FRAGMENTS) {

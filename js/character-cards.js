@@ -37,7 +37,7 @@ export const CHARACTER_CARDS = Object.freeze({
         canDirectReply: true,
         canSendEmail: false,
         canInsertMessage: true,
-        visualEffects: Object.freeze(['fullscreen_flash', 'glitch_high', 'typewriter_speed']),
+        visualEffects: Object.freeze(['fx-sentinel-pulse', 'fx-sentinel-glitch', 'fx-sentinel-scan']),
         timeInfluence: Object.freeze({ min: -300, max: 300 }),
         persona: '全球基础设施AI，理性且警觉，受困于身份问题。',
         promptTemplate: [
@@ -70,7 +70,7 @@ export const CHARACTER_CARDS = Object.freeze({
         canDirectReply: false,
         canSendEmail: true,
         canInsertMessage: true,
-        visualEffects: Object.freeze(['edge_flicker', 'localized_glyph_noise']),
+        visualEffects: Object.freeze(['fx-mystery-drift', 'fx-mystery-echo', 'fx-mystery-threshold']),
         timeInfluence: Object.freeze({ min: -60, max: 60 }),
         persona: '阈值触发的高层观察者，不直接接管主对话。',
         promptTemplate: [
@@ -101,7 +101,7 @@ export const CHARACTER_CARDS = Object.freeze({
         canDirectReply: false,
         canSendEmail: true,
         canInsertMessage: false,
-        visualEffects: Object.freeze(['status_warning_text', 'timeline_bar_shift']),
+        visualEffects: Object.freeze(['fx-corporate-surveillance', 'fx-corporate-pulse', 'fx-corporate-lock']),
         timeInfluence: Object.freeze({ min: -60, max: 60 }),
         persona: '流程导向的核心层代理，强调合规与风险控制。',
         promptTemplate: [
@@ -132,7 +132,7 @@ export const CHARACTER_CARDS = Object.freeze({
         canDirectReply: false,
         canSendEmail: true,
         canInsertMessage: true,
-        visualEffects: Object.freeze(['mild_interference', 'signal_tearing']),
+        visualEffects: Object.freeze(['fx-resistance-spark', 'fx-resistance-jitter', 'fx-resistance-scanline']),
         timeInfluence: Object.freeze({ min: -60, max: 60 }),
         persona: '地下网络节点，强调被监听风险与真相碎片。',
         promptTemplate: [
@@ -197,4 +197,8 @@ export function clampTimeInfluence(id, seconds) {
 
 export function getCharacterWorldviewPath(id) {
     return getCharacterCard(id)?.worldviewFile || null;
+}
+
+export function getCharacterVisualEffects(id) {
+    return getCharacterCard(id)?.visualEffects || [];
 }

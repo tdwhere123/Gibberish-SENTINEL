@@ -12,15 +12,33 @@ import { judgeRouteTurn, judgeMysteryTrigger } from './ai-judge.js';
 import { generateCharacterEmail } from './ai-email-generator.js';
 import { generateEndingBySpeaker } from './ai-ending.js';
 import { isCommand, executeCommand } from './commands.js';
-import { initEmailSystem, bindConnectButton, resetEmails, triggerUrgentEmail, getEmailState, receiveNewEmail } from './emails.js';
+import {
+    initEmailSystem,
+    bindConnectButton,
+    resetEmails,
+    triggerUrgentEmail,
+    getEmailState,
+    receiveNewEmail,
+    consumePendingUrgentCallbacks
+} from './emails.js';
 import * as UI from './ui.js';
-import { checkRandomEvents, checkMissionEvents, EMAIL_TEMPLATES } from './events-system.js';
+import {
+    checkRandomEvents,
+    checkMissionEvents,
+    EMAIL_TEMPLATES,
+    canTriggerEmailForRole,
+    markEmailTriggered,
+    scheduleSensitiveTopicEmailEvents,
+    consumeDueSensitiveTopicEmailEvents,
+    requeueSensitiveTopicEmailEvent
+} from './events-system.js';
 import {
     checkFragmentUnlock,
     markTopicUsed,
     getUnlockedFragments as getUnlockedFragmentsData,
     evaluateMissionTasksFromText
 } from './topic-system.js';
+import { canCharacterPerform, CHARACTER_ACTIONS } from './character-cards.js';
 import {
     updateSyncDisplay,
     showSystemEvent,
@@ -44,6 +62,7 @@ let gameLoop = null;
 let isProcessing = false;
 let finalQuestionActive = false;
 let pendingEndingType = null;
+let pendingArchiveUnlockNotices = [];
 
 function updateModelStatusBanner() {
     const el = document.getElementById('model-status-banner');
@@ -67,6 +86,33 @@ function showMailToast(message) {
     n.textContent = message;
     document.body.appendChild(n);
     setTimeout(() => n.remove(), 3200);
+}
+
+async function notifyEmailArrival(subject) {
+    await UI.addMessage(`[SYSTEM] 收到新邮件: ${subject} (输入 /emails 查看)`, 'system');
+    updateMailHintBadge();
+    showMailToast('你收到 1 封新邮件，输入 /emails 查看');
+}
+
+function queueArchiveUnlockNotice(fragment) {
+    // v2.1 update: 碎片解锁提示延迟到下一轮输入时显示
+    if (!fragment?.id) return;
+    if (pendingArchiveUnlockNotices.includes(fragment.id)) return;
+    pendingArchiveUnlockNotices.push(fragment.id);
+}
+
+async function flushQueuedArchiveUnlockNotices() {
+    if (!gameState || pendingArchiveUnlockNotices.length === 0) return;
+
+    const queue = [...pendingArchiveUnlockNotices];
+    pendingArchiveUnlockNotices = [];
+    const unlocked = getUnlockedFragmentsData(gameState);
+
+    for (const fragmentId of queue) {
+        const fragment = unlocked.find(item => item.id === fragmentId);
+        if (!fragment) continue;
+        await showSystemEvent(`[DATA] 解锁新档案: ${fragment.title}`, 'info');
+    }
 }
 
 
@@ -186,6 +232,7 @@ async function startGame(connectMode = null) {
     finalQuestionActive = false;
     pendingEndingType = null;
     isProcessing = false;
+    pendingArchiveUnlockNotices = [];
 
     if (connectMode) {
         gameState.setConnectionMode(connectMode.name, {
@@ -251,10 +298,9 @@ async function sendRouteBriefEmail() {
         body: email.body,
         isImportant: true
     });
-
-    await UI.addMessage(`[SYSTEM] 收到新邮件: ${email.subject} (输入 /emails 查看)`, 'system');
-    updateMailHintBadge();
-    showMailToast('你收到 1 封新邮件，输入 /emails 查看');
+    markEmailTriggered(gameState, routeRoleId);
+    UI.triggerCharacterEffect(routeRoleId, 'email');
+    await notifyEmailArrival(email.subject);
 }
 
 async function showIntro(connectMode = null) {
@@ -334,6 +380,29 @@ async function processDynamicEvents() {
     for (const event of events) {
         await handleEvent(event);
     }
+    await processScheduledTopicEmailEvents();
+}
+
+async function processScheduledTopicEmailEvents() {
+    if (!gameState) return;
+    const dueEvents = consumeDueSensitiveTopicEmailEvents(gameState);
+    for (const event of dueEvents) {
+        const sent = await pushGeneratedEmail(
+            event.roleId,
+            event.contextHint || '敏感词延迟触发',
+            'sensitive_topic',
+            {
+                urgent: false,
+                force: false
+            }
+        );
+
+        if (!sent) {
+            requeueSensitiveTopicEmailEvent(gameState, event, 1);
+        } else {
+            UI.applyRoleVisualEffect(event.roleId, event.templateId || 'sensitive_topic');
+        }
+    }
 }
 
 async function processEventResult(eventResult) {
@@ -354,18 +423,20 @@ async function processEventResult(eventResult) {
             break;
 
         case 'urgent_email':
-            await handleUrgentEmailEvent(eventResult.emailId || null, {
-                template: eventResult.email,
-                contextHint: eventResult.contextHint,
-                sourceRole: eventResult.sourceRole,
-                timeEffect: eventResult.timeEffect,
-                source: 'event'
-            });
-            if (eventResult.sourceRole) {
-                UI.applyRoleVisualEffect(eventResult.sourceRole, eventResult.visualEffect || '');
+            {
+                const eventEmailSent = await handleUrgentEmailEvent(eventResult.emailId || null, {
+                    template: eventResult.email,
+                    contextHint: eventResult.contextHint,
+                    sourceRole: eventResult.sourceRole,
+                    timeEffect: eventResult.timeEffect,
+                    source: 'event',
+                    force: eventResult.force
+                });
+                if (eventEmailSent && eventResult.sourceRole) {
+                    UI.applyRoleVisualEffect(eventResult.sourceRole, eventResult.visualEffect || '');
+                }
             }
             break;
-
         default:
             if (eventResult.message) {
                 await showSystemEvent(eventResult.message, 'info');
@@ -406,7 +477,18 @@ function resolveRouteRoleId(state) {
 }
 
 async function pushGeneratedEmail(roleId, contextHint, source = 'judge', options = {}) {
-    if (!gameState) return;
+    if (!gameState || !roleId) return false;
+
+    // v2.1 update: 先验证角色权限，再进入生成流程
+    if (!canCharacterPerform(roleId, CHARACTER_ACTIONS.SEND_EMAIL)) {
+        console.log('[Main] blocked email by permission:', roleId);
+        return false;
+    }
+
+    if (!options.force && !canTriggerEmailForRole(gameState, roleId, { respectPerRound: true })) {
+        return false;
+    }
+
     const progress = getMissionProgress(gameState);
 
     const email = await generateCharacterEmail({
@@ -418,13 +500,13 @@ async function pushGeneratedEmail(roleId, contextHint, source = 'judge', options
     });
 
     if (options.urgent) {
-        await handleUrgentEmailEvent(null, {
+        return handleUrgentEmailEvent(null, {
             source,
             roleId,
             generatedEmail: email,
-            timeEffect: options.timeEffect || 0
+            timeEffect: options.timeEffect || 0,
+            force: options.force
         });
-        return;
     }
 
     receiveNewEmail({
@@ -433,9 +515,10 @@ async function pushGeneratedEmail(roleId, contextHint, source = 'judge', options
         body: email.body,
         isImportant: roleId === 'mystery'
     });
-    await UI.addMessage(`[SYSTEM] 收到新邮件: ${email.subject} (输入 /emails 查看)`, 'system');
-    updateMailHintBadge();
-    showMailToast('你收到 1 封新邮件，输入 /emails 查看');
+    markEmailTriggered(gameState, roleId);
+    UI.triggerCharacterEffect(roleId, 'email');
+    await notifyEmailArrival(email.subject);
+    return true;
 }
 
 async function runJudgePipeline(userInput, aiResult) {
@@ -443,7 +526,7 @@ async function runJudgePipeline(userInput, aiResult) {
 
     const routeRoleId = resolveRouteRoleId(gameState);
     const dialogueWindow = buildDialogueWindow(6);
-    const shouldJudgeRoute = gameState.round <= 3 || Math.random() < 0.55;
+    const shouldJudgeRoute = gameState.round <= 3 || Math.random() < 0.4;
 
     if (shouldJudgeRoute) {
         const routeJudge = await judgeRouteTurn({
@@ -471,18 +554,20 @@ async function runJudgePipeline(userInput, aiResult) {
         }
 
         if (routeJudge.shouldTriggerEmail) {
-            await pushGeneratedEmail(
+            const routeEmailSent = await pushGeneratedEmail(
                 routeRoleId,
                 routeJudge.reason || routeJudge.triggerType || '路线判断触发邮件',
                 'judge',
                 { urgent: false }
             );
-            UI.applyRoleVisualEffect(routeRoleId, routeJudge.triggerType || '');
+            if (routeEmailSent) {
+                UI.applyRoleVisualEffect(routeRoleId, routeJudge.triggerType || '');
+            }
         }
     }
 
     if (gameState.syncRate >= Number(CONFIG.MYSTERY_SYNC_THRESHOLD || 60)) {
-        const shouldJudgeMystery = gameState.round <= 4 || Math.random() < 0.45;
+        const shouldJudgeMystery = gameState.round <= 4 || Math.random() < 0.3;
         if (shouldJudgeMystery) {
             const mysteryJudge = await judgeMysteryTrigger({
                 dialogueWindow,
@@ -495,7 +580,7 @@ async function runJudgePipeline(userInput, aiResult) {
             }
 
             if (mysteryJudge.shouldTriggerEmail) {
-                await pushGeneratedEmail(
+                const mysteryEmailSent = await pushGeneratedEmail(
                     'mystery',
                     mysteryJudge.messageHint || mysteryJudge.reason || '同步阈值触发',
                     'judge',
@@ -504,7 +589,9 @@ async function runJudgePipeline(userInput, aiResult) {
                         timeEffect: Math.round((gameState.syncRate - 50) / 2)
                     }
                 );
-                UI.applyRoleVisualEffect('mystery', mysteryJudge.triggerType || '');
+                if (mysteryEmailSent) {
+                    UI.applyRoleVisualEffect('mystery', mysteryJudge.triggerType || '');
+                }
             }
 
             if (mysteryJudge.shouldInsertMessage) {
@@ -522,15 +609,13 @@ async function runJudgePipeline(userInput, aiResult) {
 }
 
 async function handleUrgentEmailEvent(emailId = null, options = {}) {
-    if (!gameState) return;
-
-    UI.disableInput();
-    await UI.addMessage('[PRIORITY MAIL RECEIVED]', 'system');
-
-    const appContainer = document.getElementById('app-container');
-    if (appContainer) appContainer.classList.add('hidden');
+    if (!gameState) return false;
 
     const roleId = options.roleId || options.sourceRole || 'corporate';
+    if (!options.force && !canTriggerEmailForRole(gameState, roleId, { respectPerRound: true })) {
+        return false;
+    }
+
     let template = options.template || null;
 
     if (!template && options.generatedEmail) {
@@ -562,38 +647,40 @@ async function handleUrgentEmailEvent(emailId = null, options = {}) {
         };
     }
 
-    return new Promise(resolve => {
-        const requestedTimeEffect = typeof options.timeEffect === 'number'
-            ? options.timeEffect
-            : (typeof template.timeEffect === 'number' ? template.timeEffect : 0);
+    const requestedTimeEffect = typeof options.timeEffect === 'number'
+        ? options.timeEffect
+        : (typeof template.timeEffect === 'number' ? template.timeEffect : 0);
 
-        triggerUrgentEmail({
-            from: template.from || 'SYSTEM',
-            subject: template.subject || '[PRIORITY]',
-            date: new Date().toLocaleString(),
-            content: template.body || ''
-        }, {
-            onRead: async () => {
-                gameState.markUrgentMailRead();
-                if (requestedTimeEffect) {
-                    const outcome = gameState.applyTimeInfluence(roleId, requestedTimeEffect);
-                    if (outcome.applied) {
-                        await UI.addMessage(
-                            `[SYSTEM] 时间变动: ${outcome.applied > 0 ? '+' : ''}${outcome.applied} 秒`,
-                            'system'
-                        );
-                    }
+    triggerUrgentEmail({
+        from: template.from || 'SYSTEM',
+        subject: template.subject || '[PRIORITY]',
+        date: new Date().toLocaleString(),
+        content: template.body || ''
+    }, {
+        onRead: async () => {
+            gameState.markUrgentMailRead();
+            if (requestedTimeEffect) {
+                const outcome = gameState.applyTimeInfluence(roleId, requestedTimeEffect);
+                if (outcome.applied) {
+                    await UI.addMessage(
+                        `[SYSTEM] 时间变动: ${outcome.applied > 0 ? '+' : ''}${outcome.applied} 秒`,
+                        'system'
+                    );
                 }
-                UI.updateStatusBar(gameState);
-                updateSyncDisplay(gameState.syncRate);
-            },
-            onResolved: () => {
-                if (appContainer) appContainer.classList.remove('hidden');
-                UI.enableInput();
-                resolve();
             }
-        });
+            UI.updateStatusBar(gameState);
+            updateSyncDisplay(gameState.syncRate);
+        },
+        onResolved: () => {
+            UI.updateStatusBar(gameState);
+            updateSyncDisplay(gameState.syncRate);
+        }
     });
+
+    markEmailTriggered(gameState, roleId);
+    UI.triggerCharacterEffect(roleId, 'email');
+    await notifyEmailArrival(template.subject || '[PRIORITY]');
+    return true;
 }
 
 async function handleAIEventTag(tag) {
@@ -605,10 +692,12 @@ async function handleAIEventTag(tag) {
         const isRole = ['corporate', 'resistance', 'mystery'].includes(possibleRole);
         const roleId = isRole ? possibleRole : resolveRouteRoleId(gameState);
         const contextHint = isRole ? parts.slice(2).join(':') : parts.slice(1).join(':');
-        await pushGeneratedEmail(roleId, contextHint || 'AI 标签触发邮件', 'ai_event', {
+        const aiTagEmailSent = await pushGeneratedEmail(roleId, contextHint || 'AI 标签触发邮件', 'ai_event', {
             urgent: roleId === 'mystery'
         });
-        UI.applyRoleVisualEffect(roleId, 'ai_event');
+        if (aiTagEmailSent) {
+            UI.applyRoleVisualEffect(roleId, 'ai_event');
+        }
         return;
     }
 
@@ -664,7 +753,8 @@ async function handleEvent(event) {
             await handleUrgentEmailEvent(event.emailId || null, {
                 source: 'schedule',
                 roleId: resolveRouteRoleId(gameState),
-                contextHint: '定时触发的异常提醒'
+                contextHint: '定时触发的异常提醒',
+                force: false
             });
             break;
         default:
@@ -682,6 +772,7 @@ async function handleSend() {
     UI.disableInput();
     UI.clearInput();
     await UI.addMessage(input, 'user', true);
+    await flushQueuedArchiveUnlockNotices();
 
     if (finalQuestionActive) {
         await handleFinalAnswer(input);
@@ -702,6 +793,7 @@ async function handleSend() {
             }
 
             if (result.action === 'OPEN_EMAILS') {
+                await consumePendingUrgentCallbacks();
                 openEmailsModal();
                 updateMailHintBadge();
                 isProcessing = false;
@@ -726,6 +818,7 @@ async function handleSend() {
 
             UI.updateStatusBar(gameState);
         } else {
+            const turnRound = gameState.round;
             UI.showThinking();
             const aiResult = await generateDialogueReply(input, gameState, {
                 applyEffects: true,
@@ -743,15 +836,10 @@ async function handleSend() {
                 }
             }
 
+            // v2.1 update: 仅允许玩家输入触发碎片，且提示延迟到下一轮显示
             const userFragment = checkFragmentUnlock(input, gameState);
-            const aiFragment = checkFragmentUnlock(aiResult.text, gameState);
-
-            if (userFragment) {
-                await showSystemEvent(`[DATA] 解锁新档案: ${userFragment.title}`, 'info');
-            }
-            if (aiFragment && aiFragment.id !== userFragment?.id) {
-                await showSystemEvent(`[DATA] 解锁新档案: ${aiFragment.title}`, 'info');
-            }
+            if (userFragment) queueArchiveUnlockNotice(userFragment);
+            scheduleSensitiveTopicEmailEvents(gameState, input, turnRound);
 
             if (aiResult.topicId) {
                 markTopicUsed(gameState, aiResult.topicId);

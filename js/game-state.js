@@ -72,6 +72,14 @@ export class GameState {
 
         this.deviations = { ...this.getDefaultDeviations(), ...(data.deviations || {}) };
         this.missionState = { ...this.getDefaultMissionState(), ...(data.missionState || {}) };
+        this.emailTriggerState = { ...this.getDefaultEmailTriggerState(), ...(data.emailTriggerState || {}) };
+        this.emailTriggerState.lastRoundByRole = {
+            ...this.getDefaultEmailTriggerState().lastRoundByRole,
+            ...(data?.emailTriggerState?.lastRoundByRole || {})
+        };
+        this.emailTriggerState.scheduledSensitiveEvents = Array.isArray(data?.emailTriggerState?.scheduledSensitiveEvents)
+            ? data.emailTriggerState.scheduledSensitiveEvents
+            : [];
 
         this.mission = data.mission || null;
         this.missionObjective = data.missionObjective || null;
@@ -150,6 +158,19 @@ export class GameState {
         };
     }
 
+    getDefaultEmailTriggerState() {
+        return {
+            lastAnyRound: -999,
+            lastRoundByRole: {
+                corporate: -999,
+                resistance: -999,
+                mystery: -999,
+                sentinel: -999
+            },
+            scheduledSensitiveEvents: []
+        };
+    }
+
     initNew() {
         this.version = 3;
 
@@ -181,6 +202,7 @@ export class GameState {
 
         this.deviations = this.getDefaultDeviations();
         this.missionState = this.getDefaultMissionState();
+        this.emailTriggerState = this.getDefaultEmailTriggerState();
 
         this.lastOtherTimeInfluenceAt = 0;
 
@@ -211,6 +233,7 @@ export class GameState {
             pendingEnding: this.pendingEnding,
             deviations: this.deviations,
             missionState: this.missionState,
+            emailTriggerState: this.emailTriggerState,
             mission: this.mission,
             missionObjective: this.missionObjective,
             lastOtherTimeInfluenceAt: this.lastOtherTimeInfluenceAt

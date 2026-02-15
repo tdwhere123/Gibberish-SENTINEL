@@ -331,13 +331,14 @@ class InterruptManager {
         const sync = Number(state?.syncRate || 0);
         const round = Number(state?.round || 1);
 
-        let chance = 0.2;
-        if (suspicion >= 50) chance += 0.15;
-        if (sync >= 50) chance += 0.1;
-        if (round >= 10) chance += 0.08;
-        if (round >= 20) chance += 0.08;
+        // v2.1 update: 收敛打断触发频率到更低区间，避免后期刷屏
+        let chance = 0.06;
+        if (suspicion >= 55) chance += 0.05;
+        if (sync >= 60) chance += 0.04;
+        if (round >= 12) chance += 0.03;
+        if (round >= 20) chance += 0.02;
 
-        return clamp(0.1, 0.8, chance);
+        return clamp(0.04, 0.28, chance);
     }
 
     stopAutoListening() {

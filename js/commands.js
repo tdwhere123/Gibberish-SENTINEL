@@ -5,7 +5,7 @@
 
 const COMMANDS = Object.freeze({
     '/emails': {
-        description: '打开邮件弹窗',
+        description: '打开邮件弹窗并结算待处理邮件回调',
         action: 'OPEN_EMAILS'
     },
     '/archive': {

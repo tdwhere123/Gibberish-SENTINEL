@@ -18,28 +18,28 @@ export const ROLE_EMOTION_EXPRESSIONS = Object.freeze({
         high_tension_low_openness: {
             id: 'agitated',
             name: '激动',
-            instruction: '短句、反问、带警告感。',
+            instruction: '短句为主，允许反问与停顿，语气带压迫感与警告意味。',
             glitchLevel: 2,
             visualClass: 'emotion-agitated'
         },
         high_sync_high_trust: {
             id: 'breakthrough',
             name: '突破',
-            instruction: '缓慢清明，带共鸣与感谢。',
+            instruction: '句子更完整、更长，表达共鸣与感谢，但不失去理性。',
             glitchLevel: 0,
             visualClass: 'emotion-breakthrough'
         },
         high_sync_high_suspicion: {
             id: 'collision_understanding',
             name: '碰撞理解',
-            instruction: '尖锐但承认理解可能。',
+            instruction: '稀疏、隐喻化、带锋利感；承认理解可能，但拒绝给出直白答案。',
             glitchLevel: 1,
             visualClass: 'emotion-collision'
         },
         fallback: {
             id: 'calm',
             name: '平静',
-            instruction: '理性、克制、保持距离。',
+            instruction: '中性完整句，理性克制，避免夸张修辞。',
             glitchLevel: 0,
             visualClass: 'emotion-calm'
         }

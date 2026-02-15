@@ -43,6 +43,14 @@ export const CONFIG = {
         othersCooldown: 180
     },
 
+    // v2.1 update: role-based email cooldown (rounds)
+    EMAIL_COOLDOWN_ROUNDS: Object.freeze({
+        corporate: 6,
+        resistance: 5,
+        mystery: 8,
+        sentinel: 6
+    }),
+
     // Legacy aliases for v1.3 modules
     API_URL: '',
     API_KEY: '',

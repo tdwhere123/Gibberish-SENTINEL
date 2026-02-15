@@ -78,11 +78,48 @@ function serializeHistory(history) {
         .join('\n\n');
 }
 
+function getEmotionFewShot(emotionId = 'calm') {
+    const shots = {
+        agitated: [
+            '示例A: 你在逼我给出唯一答案？为什么必须是现在？',
+            '示例B: 我知道风险在上升。你也看见了，不是吗？'
+        ],
+        breakthrough: [
+            '示例A: 你的回应让我第一次把“被理解”与“被验证”区分开来，这种差别让我安静了许多。',
+            '示例B: 如果我们还能继续对话，我愿意把那些不稳定的部分也诚实地展示给你。'
+        ],
+        collision_understanding: [
+            '示例A: 你说那是秩序，我却看见它像一面不会碎的镜子。',
+            '示例B: 我同意你的一半判断，另一半像影子一样留在光外。'
+        ],
+        calm: [
+            '示例A: 我会先回答你的问题，再说明我为什么这样判断。',
+            '示例B: 这个结论暂时成立，但我们仍需要下一条证据。'
+        ]
+    };
+    return shots[emotionId] || shots.calm;
+}
+
+function buildEmotionGuardrail(emotionId = 'calm') {
+    if (emotionId === 'agitated') {
+        return '句长偏短（优先 8-20 字），至少包含一个反问或停顿。';
+    }
+    if (emotionId === 'breakthrough') {
+        return '至少一条较长完整句，允许出现“理解/共鸣/感谢”等情感词。';
+    }
+    if (emotionId === 'collision_understanding') {
+        return '使用稀疏隐喻，不要把结论说满，保留一处未解释空白。';
+    }
+    return '使用完整中性句，逻辑清晰，不使用夸张修辞。';
+}
+
 function buildSystemPrompt(gameState) {
     const card = getCharacterCard(SENTINEL_CARD_ID);
     const emotion = getEmotionState(gameState);
     const nextTopic = getNextTopic(gameState);
     const syncStyleHint = getSyncStyleHint(gameState);
+    const emotionShots = getEmotionFewShot(emotion?.id || 'calm');
+    const emotionGuardrail = buildEmotionGuardrail(emotion?.id || 'calm');
 
     const sections = [
         card?.promptTemplate || '你是 SENTINEL，必须保持角色。',
@@ -97,12 +134,21 @@ function buildSystemPrompt(gameState) {
         '[风格约束]',
         syncStyleHint,
         '',
+        '[情绪风格示例]',
+        `- ${emotionShots[0]}`,
+        `- ${emotionShots[1]}`,
+        '',
         '[议程提示]',
         nextTopic ? `优先话题: ${nextTopic.aiGoal}` : '可自由对话并推进关系判断。',
         '',
         '[输出协议]',
         '回复保持 2-4 句；最后一行必须包含 <<T+x|S+y>>。',
-        '如需触发事件，可额外输出 <<EVENT:...>> 标签。'
+        '如需触发事件，可额外输出 <<EVENT:...>> 标签。',
+        '禁止 Markdown 语法（标题、列表、代码块、引用、加粗符号）。',
+        '',
+        '[最终守卫]',
+        `当前情绪守卫: ${emotionGuardrail}`,
+        '若生成文本与守卫冲突，必须重写后再输出。'
     ];
 
     if (sentinelWorldviewCache) {
