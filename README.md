@@ -6,7 +6,7 @@
 
 - **v2.0 基线**：架构级重构 → `docs/release-summary-v2.0.0.md`
 - **v2.1 已发布**：体验强化与稳健性治理 → `docs/release-summary-v2.1.0.md`
-- **v2.2 规划中**：游戏性深化、解谜/推理灵感融入、BUG 修复 → `progress.md`
+- **v2.2 规划中**：游戏性深化、解谜/推理灵感融入、BUG 修复 → `TASKS.md`
 - 存档策略：`sentinel_save_v3`
 
 ## v2.1 已完成更新（归档）
@@ -43,6 +43,6 @@ python -m http.server 8000
 
 ## 维护约定
 
-- 任务状态与执行日志优先更新到 `progress.md`。
+- 任务状态与执行日志优先更新到 `TASKS.md`。
 - 版本总结写入 `docs/release-summary-*.md`。
 - README 保持长期有效信息，不记录临时任务拆解。

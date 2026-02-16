@@ -8,7 +8,7 @@ This repository is a browser-based narrative game with a static frontend.
 - `css/`: terminal/game styling.
 - `worldview/` and `WORLDVIEW.md`: narrative lore and route context.
 - `docs/`: release notes and iteration planning docs.
-- `progress.md`: current execution backlog/tasks for the next version.
+- `TASKS.md`: current execution backlog/tasks for the next version.
 
 Keep feature logic in `js/` modules by domain (for example `mission-system.js`, `events-system.js`) rather than adding monolithic code to `main.js`.
 
@@ -49,4 +49,4 @@ Recent history follows concise, conventional subjects such as `fix: ...` and `do
   - impacted files/modules,
   - manual test evidence,
   - screenshots/GIFs for UI changes,
-  - linked task/issue (for example `T1`, `T2` from `progress.md`).
+  - linked task/issue (for example `T1`, `T2` from `TASKS.md`).
