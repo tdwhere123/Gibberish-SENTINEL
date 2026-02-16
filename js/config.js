@@ -10,12 +10,12 @@ export const CONFIG = {
     // Main model (dialogue / email / ending)
     MAIN_API_URL: '',
     MAIN_API_KEY: '',
-    MAIN_MODEL: 'gpt-4o-mini',
+    MAIN_MODEL: 'gemini-3-flash-preview',
 
     // Judge model (deviation / mission checklist)
     JUDGE_API_URL: '',
     JUDGE_API_KEY: '',
-    JUDGE_MODEL: 'gpt-4o-mini',
+    JUDGE_MODEL: 'gemini-3-flash-preview',
 
     // Game timing
     GAME_DURATION: 900,
@@ -54,6 +54,6 @@ export const CONFIG = {
     // Legacy aliases for v1.3 modules
     API_URL: '',
     API_KEY: '',
-    MODEL: 'gpt-4o-mini',
+    MODEL: 'gemini-3-flash-preview',
     MAX_ROUNDS: 30
 };

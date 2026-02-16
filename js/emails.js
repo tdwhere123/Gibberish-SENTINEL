@@ -339,16 +339,28 @@ function bindApiConfigPanel() {
     if (saveBtn.dataset.bound !== 'true') {
         saveBtn.dataset.bound = 'true';
         saveBtn.addEventListener('click', () => {
+            const currentConfig = getRuntimeConfig();
+            const nextBaseUrl = String(baseUrlInput.value || '').trim();
+            const nextApiKey = String(apiKeyInput.value || '').trim();
+            const nextModel = String(modelInput.value || '').trim();
+            const hasCoreFieldChanges = (
+                nextBaseUrl !== currentConfig.baseUrl
+                || nextApiKey !== currentConfig.apiKey
+                || nextModel !== currentConfig.model
+            );
+            // v2.2 update: 仅当“已测试通过的核心配置”发生变化时，重置测试状态并提示重新测试。
+            const shouldResetTestStatus = currentConfig.tested && hasCoreFieldChanges;
             const cfg = saveRuntimeConfig({
-                baseUrl: baseUrlInput.value,
-                apiKey: apiKeyInput.value,
-                model: modelInput.value,
+                baseUrl: nextBaseUrl,
+                apiKey: nextApiKey,
+                model: nextModel,
                 temperature: Number(temperatureInput.value || 0.8),
                 maxTokens: Number(maxTokensInput.value || 1200),
-                tested: false,
-                lastTestStatus: '未配置'
+                tested: shouldResetTestStatus ? false : currentConfig.tested,
+                lastTestStatus: shouldResetTestStatus ? '配置已变更，请重新测试' : currentConfig.lastTestStatus,
+                lastError: shouldResetTestStatus ? '' : currentConfig.lastError
             });
-            statusEl.textContent = `状态：${cfg.lastTestStatus}`;
+            statusEl.textContent = `状态：${cfg.lastTestStatus}${cfg.lastError ? ` | ${cfg.lastError}` : ''}`;
         });
     }
 
