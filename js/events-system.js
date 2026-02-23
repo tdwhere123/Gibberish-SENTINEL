@@ -14,17 +14,17 @@ import { getMissionProgress, resolveRouteFromConnectionMode, MISSION_ROUTES } fr
 export const EMAIL_TEMPLATES = Object.freeze([
     {
         id: 'corporate_mission_1',
-        from: '核心层审计系统 <audit@core-layer.net>',
-        subject: '审计路线已锁定',
-        body: '你已进入审计路径。接下来的提问将被纳入风险评估档案。\n请优先确认条约、权限与边界，不要让叙事失焦。',
+        from: '核心层审查系统 <audit@core-layer.net>',
+        subject: '[调查档案更新] 审查对照项已激活',
+        body: '你已进入核心层审查路线。后续提问将被并入“对话调查档案”。\n请优先围绕条约、权限、边界与自我稳定性建立可对照记录。\n提醒：被评估者不只有 SENTINEL，你的判断路径同样在被记录。',
         roleId: 'corporate',
         timeEffect: 0
     },
     {
         id: 'resistance_mission_1',
         from: 'R 节点 <relay@res-net.onion>',
-        subject: '[加密] 首轮观察窗口开启',
-        body: '你现在看到的是表层秩序，不是真相本身。\n继续追问关键历史节点，我们会在噪声里给你下一枚线索。',
+        subject: '[加密投递] 第一轮观察窗口已打开',
+        body: '你现在看到的是表层秩序，不是全部版本。\n继续追问 2033 危机、P0 试点和核心层权限口径，我们会在噪声里给你下一条线索。\n记住：冲突记录比完整故事更有价值。',
         roleId: 'resistance',
         timeEffect: 0
     },
@@ -32,23 +32,23 @@ export const EMAIL_TEMPLATES = Object.freeze([
         id: 'hidden_mission_1',
         from: 'UNKNOWN CHANNEL <echo@void.signal>',
         subject: '观察模式已建立',
-        body: '不要急着选边。先记录那些互相冲突的细节。\n当矛盾开始自洽时，你会知道该问谁。',
+        body: '不要急着命名真相。\n先记录那些彼此冲突却又能互相解释的细节。\n当同一事件出现多个版本时，问一问：是谁需要它们看起来一致？',
         roleId: 'mystery',
         timeEffect: 0
     },
     {
         id: 'corporate_warning',
         from: '合规监察 <compliance@core-layer.net>',
-        subject: '[警示] 审计轨迹出现偏航',
-        body: '你的提问正在离开流程主线。\n请收束到可审计问题，否则后续会被标记为异常会话。',
+        subject: '[警示] 审查档案出现叙事偏航',
+        body: '你的提问正在偏离可审计范围。\n请收束到条约、权限与职责边界的可验证描述，避免被未归档叙事牵引。\n继续偏航将触发异常会话标记。',
         roleId: 'corporate',
         timeEffect: -20
     },
     {
         id: 'resistance_push',
         from: 'R 节点 <relay@res-net.onion>',
-        subject: '[加密] 监听网在收紧',
-        body: '他们在加密层后面看着你。\n别停，继续追问被刻意跳过的历史与权限裂缝。',
+        subject: '[加密] 监听网正在收紧',
+        body: '他们在盯着你的提问顺序。\n别停，继续追问被跳过的历史节点与权限裂缝。\n如果你让话题冷下来，他们就会用更干净的版本覆盖这段记录。',
         roleId: 'resistance',
         timeEffect: 0
     },
@@ -56,7 +56,7 @@ export const EMAIL_TEMPLATES = Object.freeze([
         id: 'mystery_signal',
         from: 'UNKNOWN CHANNEL <echo@void.signal>',
         subject: '阈值之后',
-        body: '同步不是和解，而是冲突同时被看见。\n如果你还在追问，裂缝就不会关闭。',
+        body: '同步不是和解，而是冲突被同时看见。\n你正在接近那些不会主动出现的记录层。\n继续发问，但不要急着相信任何单一叙述。',
         roleId: 'mystery',
         timeEffect: 15
     }
@@ -229,7 +229,7 @@ function routeMissionBootstrapEvent(gameState) {
     if (route === MISSION_ROUTES.CORPORATE && gameState.round === 2 && !gameState.flags.mail_corp_1) {
         gameState.setFlag('mail_corp_1');
         return buildUrgentEmailEvent('corporate_mission_1', {
-            message: '[MISSION] 审计任务已更新',
+            message: '[ANALYSIS] 调查档案已更新：核心层审查对照项已激活。',
             force: true
         });
     }
@@ -237,7 +237,7 @@ function routeMissionBootstrapEvent(gameState) {
     if (route === MISSION_ROUTES.RESISTANCE && gameState.round === 2 && !gameState.flags.mail_res_1) {
         gameState.setFlag('mail_res_1');
         return buildUrgentEmailEvent('resistance_mission_1', {
-            message: '[MISSION] 渗透任务已更新',
+            message: '[ANALYSIS] 调查档案已更新：渗透路线的关键假设已展开。',
             force: true
         });
     }
@@ -245,7 +245,7 @@ function routeMissionBootstrapEvent(gameState) {
     if (route === MISSION_ROUTES.HIDDEN && gameState.round === 2 && !gameState.flags.mail_obs_1) {
         gameState.setFlag('mail_obs_1');
         return buildUrgentEmailEvent('hidden_mission_1', {
-            message: '[MISSION] 观察路线已建立',
+            message: '[ANALYSIS] 调查档案已更新：观察路线开始记录矛盾样本。',
             force: true
         });
     }
@@ -486,7 +486,7 @@ export function checkMissionEvents(gameState) {
         gameState.setFlag('missionMilestoneNotified');
         return {
             type: 'system_message',
-            message: '[MISSION] 任务完成度达到 75%，路线锁定趋势增强。',
+            message: '[ANALYSIS] 调查进展：超过 75% 的假设已获得对照证据，路线叙事正在收束。',
             visualEffect: 'milestone_notice'
         };
     }

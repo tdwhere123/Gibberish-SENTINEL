@@ -10,6 +10,7 @@
 import { CONFIG } from './config.js';
 import { buildLLMRequestOptions } from './runtime-config.js';
 import { getCharacterCard } from './character-cards.js';
+import { buildWorldviewPromptText, shouldLoadExtendedWorldview } from './worldview-utils.js';
 
 const worldviewCache = new Map();
 
@@ -61,13 +62,15 @@ function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function loadWorldviewByCard(roleId) {
+async function loadWorldviewByCard(roleId, options = {}) {
     const card = getCharacterCard(roleId);
     const filePath = card?.worldviewFile;
     if (!filePath) return '';
 
+    const includeExtended = shouldLoadExtendedWorldview(options);
+
     if (worldviewCache.has(filePath)) {
-        return worldviewCache.get(filePath);
+        return buildWorldviewPromptText(worldviewCache.get(filePath), { includeExtended });
     }
 
     try {
@@ -75,7 +78,8 @@ async function loadWorldviewByCard(roleId) {
         if (!res.ok) return '';
         const text = await res.text();
         worldviewCache.set(filePath, text);
-        return text;
+        // v2.2 update: 邮件生成默认只读 worldview 核心层，按同步率/上下文扩展
+        return buildWorldviewPromptText(text, { includeExtended });
     } catch {
         return '';
     }
@@ -269,7 +273,10 @@ export async function generateCharacterEmail(params = {}) {
     }
 
     try {
-        const worldviewText = await loadWorldviewByCard(roleId);
+        const worldviewText = await loadWorldviewByCard(roleId, {
+            gameState,
+            contextHint
+        });
         const prompt = buildEmailPrompt({ roleId, gameState, contextHint, dialogueWindow, missionSummary }, worldviewText);
         const content = await callMainModel(prompt);
         const parsed = extractJson(content);

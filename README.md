@@ -9,6 +9,20 @@
 - **v2.2 规划中**：游戏性深化、解谜/推理灵感融入、BUG 修复 → `TASKS.md`
 - 存档策略：`sentinel_save_v3`
 
+## v2.2 Execution Progress (updated)
+
+- Completed: T1 (API config save-state bug fix)
+- Completed: T2 (worldview docs restructure + core/extended sections)
+- Completed: T3 (fragment source schema + archive source tags)
+- Completed: T4 (route opening lines + atmospheric intro sequence)
+- Completed: T5 (investigation-archive mission mode + fragment association hints)
+- Completed: T6 (character card cognition boundaries / sub-unit perspective)
+- Completed: T7 (worldview layered loading: core by default, extended on demand, ending loads full)
+- Completed: T8 (opening emails + system message atmosphere refresh + faction email voice alignment)
+- Completed: T9 (topic pool and dialogue prompt alignment with v2.2 worldview)
+- Latest execution details: progress.md
+- Task source of truth: TASKS.md
+
 ## v2.1 已完成更新（归档）
 
 - 碎片触发改造：仅玩家输入可触发，解锁提示延迟到下一轮显示。

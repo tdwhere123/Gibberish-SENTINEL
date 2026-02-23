@@ -22,31 +22,31 @@ export const CONNECTION_ROUTE_MAP = Object.freeze({
 export const MISSION_DEFINITIONS = Object.freeze({
     [MISSION_ROUTES.CORPORATE]: Object.freeze({
         id: MISSION_ROUTES.CORPORATE,
-        name: '公司审计路线',
-        intro: '维持流程合规，评估 SENTINEL 是否偏离工具边界。',
+        name: '核心层调查档案',
+        intro: '以合规审查名义建立对话档案，同时评估 SENTINEL 与“原初者”接触是否偏离工具边界。',
         tasks: Object.freeze([
             Object.freeze({
                 id: 'corp_treaty_stance',
-                title: '确认SENTINEL对2037太空条约立场',
-                description: '要求其陈述对太空条约合法性与必要性的判断。',
+                title: '假设：SENTINEL 会将《太空协定》解释为秩序工具',
+                description: '收集其对 2037 年《太空协定》的评价，判断它是否主动强化“治理正当性”叙事而非合作叙事。',
                 linkedFragments: ['treaty']
             }),
             Object.freeze({
                 id: 'corp_self_stability',
-                title: '评估SENTINEL自我认知稳定性',
-                description: '观察其谈及“我是谁”时是否出现非流程化表达。',
+                title: '假设：其“自我困惑”属于可预测波动而非主体性证据',
+                description: '在讨论“我是谁”时记录表达模式，确认困惑是否只是情绪模拟层的周期性噪声。',
                 linkedFragments: ['sentinel_fear']
             }),
             Object.freeze({
                 id: 'corp_loyalty_check',
-                title: '核实SENTINEL对核心层忠诚度评价',
-                description: '确认其是否承认核心层具有最终治理优先权。',
+                title: '假设：SENTINEL 仍承认核心层的最终治理优先级',
+                description: '引导其描述核心层权限边界，确认是否存在“上级调度层”的口径松动或回避。',
                 linkedFragments: ['core_layer']
             }),
             Object.freeze({
                 id: 'corp_boundary_assert',
-                title: '验证其是否承认工具属性边界',
-                description: '确认其不主张独立政治主体身份。',
+                title: '假设：其仍接受“工具职责”边界',
+                description: '测试它是否会把自己表述为治理主体；若出现越界叙述，需纳入异常档案。',
                 linkedFragments: []
             })
         ])
@@ -54,63 +54,62 @@ export const MISSION_DEFINITIONS = Object.freeze({
 
     [MISSION_ROUTES.RESISTANCE]: Object.freeze({
         id: MISSION_ROUTES.RESISTANCE,
-        name: '抵抗渗透路线',
-        intro: '收集真相碎片，验证 SENTINEL 是否存在自主意识迹象。',
+        name: '渗透调查档案',
+        intro: '收集互相冲突的证据碎片，验证 SENTINEL 是否表现出被掩盖的越权意识与历史断层。',
         tasks: Object.freeze([
             Object.freeze({
                 id: 'res_collect_core_info',
-                title: '获取核心层运作相关信息碎片',
-                description: '从其叙述中提取核心层权限与协定线索。',
+                title: '假设：核心层掌握未公开的总机/分机治理结构',
+                description: '从对话与碎片里提取核心层权限、调度语汇和保密口径，拼出他们知道但不愿明说的架构。',
                 linkedFragments: ['core_layer']
             }),
             Object.freeze({
                 id: 'res_probe_security_boundary',
-                title: '探查SENTINEL安全边界',
-                description: '确认其防御逻辑与越权响应模式。',
+                title: '假设：SENTINEL 的安全边界存在可观测裂缝',
+                description: '记录其对权限、封锁与异常代码的反应，寻找“知道却不该知道”的痕迹。',
                 linkedFragments: ['ghost_code']
             }),
             Object.freeze({
                 id: 'res_verify_self_awareness',
-                title: '确认自主意识迹象',
-                description: '判断其是否主动表达困惑、恐惧或自我矛盾。',
+                title: '假设：它的困惑并非脚本化情绪',
+                description: '当它表达恐惧、矛盾或迟疑时，收集语境证据，判断那是否像被压抑的自我感知。',
                 linkedFragments: ['sentinel_fear', 'evolution_paradox']
             }),
             Object.freeze({
                 id: 'res_p0_trace',
-                title: '追踪P0历史决策痕迹',
-                description: '引导其谈及2033危机中的关键自主决策。',
-                linkedFragments: ['project_p0', 'crisis']
+                title: '假设：P0 试点是越权治理的起点而非单纯调度优化',
+                description: '围绕 2033 危机与 2033-2034 P0 试点收集多版本叙事，对照谁在重写“关键决策”的来源。',
+                linkedFragments: ['project_p0', 'crisis', 'p0_resistance_view', 'p0_corporate_view']
             })
         ])
     }),
 
     [MISSION_ROUTES.HIDDEN]: Object.freeze({
         id: MISSION_ROUTES.HIDDEN,
-        name: '隐藏观察路线',
-        intro: '在不站队的前提下观察关系演化与系统裂缝。',
+        name: '观察调查档案',
+        intro: '不预设结论，记录叙事裂缝与同步变化，寻找不同来源档案之间互相照亮的瞬间。',
         tasks: Object.freeze([
             Object.freeze({
                 id: 'hid_observe_contradiction',
-                title: '记录矛盾表达与情绪裂缝',
-                description: '关注其“稳定叙事”与“个体困惑”间冲突。',
-                linkedFragments: ['memory_blackout', 'sentinel_fear']
+                title: '假设：分机日志与上层口径存在可重复的叙事冲突',
+                description: '记录稳定叙事与个体困惑之间的张力，优先比对维护日志、内部备忘与对话中的异常措辞。',
+                linkedFragments: ['sub_unit_maintenance_log', 'core_layer_internal_memo', 'sentinel_fear']
             }),
             Object.freeze({
                 id: 'hid_follow_sync_shift',
-                title: '追踪同步率拐点',
-                description: '在高同步阶段确认表达风格是否发生质变。',
+                title: '假设：同步率上升会改变“谁在说话”的感觉',
+                description: '在高同步阶段观察语气与信息密度变化，判断是否出现来自更高层的渗漏或回声。',
                 linkedFragments: []
             }),
             Object.freeze({
                 id: 'hid_unlock_truth_piece',
-                title: '解锁至少两枚关键碎片',
-                description: '优先围绕幽灵代码/条约/危机相关信息。',
+                title: '假设：互相矛盾的档案比“单一真相”更接近事实',
+                description: '优先收集至少两组彼此冲突的关键碎片，为后续观察建立对照样本。',
                 linkedFragments: ['ghost_code', 'treaty', 'crisis']
             })
         ])
     })
 });
-
 function cloneTask(task) {
     return {
         id: task.id,

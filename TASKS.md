@@ -11,7 +11,7 @@ baseline_version: v2.1.0
 target_version: v2.2
 start_date: 2026-02-16
 save_strategy: sentinel_save_v3
-status: ready_for_execution
+status: completed
 language: zh-CN
 default_model: gemini-3-flash-preview
 ```
@@ -169,7 +169,7 @@ tasks:
   - id: T1
     title: 修复 API 配置保存状态显示 BUG
     priority: P0
-    status: pending
+    status: completed
     objective:
       - 保存按钮不再强制覆盖 tested 和 lastTestStatus 字段
       - 若表单中的 baseUrl/apiKey/model 与当前已测试配置相同，保留测试通过状态
@@ -193,7 +193,7 @@ tasks:
   - id: T2
     title: 重构世界观文件体系
     priority: P0
-    status: pending
+    status: completed
     objective:
       - 更新 WORLDVIEW.md 总设计文档
       - 重写四份 worldview/*.md 文件为四种不同的"历史记忆"
@@ -248,7 +248,7 @@ tasks:
   - id: T3
     title: 重构全部数据碎片
     priority: P0
-    status: pending
+    status: completed
     objective:
       - 每枚碎片新增 source 字段标注来源阵营
       - 移除或替换 memory_blackout 碎片
@@ -304,7 +304,7 @@ tasks:
   - id: T4
     title: 改进开局 AI 对白与路线钩子
     priority: P1
-    status: pending
+    status: completed
     objective:
       - 重写三种连接模式 (SECURE/STANDARD/HIDDEN) 的 openingLine
       - 改进 showIntro() 开场序列文本
@@ -337,7 +337,7 @@ tasks:
   - id: T5
     title: 任务系统改为调查档案模式
     priority: P1
-    status: pending
+    status: completed
     objective:
       - 术语从"任务清单"改为"调查档案"/"待验证假设"
       - 任务描述增加叙事性说明（不再是干巴巴的检查项）
@@ -372,7 +372,7 @@ tasks:
   - id: T6
     title: 角色卡深化与分机认知边界
     priority: P1
-    status: pending
+    status: completed
     objective:
       - SENTINEL 角色卡反映分机的认知范围和边界
       - Corporate 角色卡反映进步主义立场
@@ -409,7 +409,7 @@ tasks:
   - id: T7
     title: worldview 文件分层加载机制
     priority: P1
-    status: pending
+    status: completed
     objective:
       - worldview 文件用 markdown 分隔符分为核心层和扩展层
       - 代码加载时默认只注入核心层
@@ -443,7 +443,7 @@ tasks:
   - id: T8
     title: 开场邮件与系统消息氛围优化
     priority: P2
-    status: pending
+    status: completed
     objective:
       - 重写开场三封邮件文本（与 WORLDVIEW.md 中的邮件样本对齐）
       - 邮件需建立"玩家也是被审计者"的双向感
@@ -483,7 +483,7 @@ tasks:
   - id: T9
     title: 话题池与对话 prompt 配合重构
     priority: P2
-    status: pending
+    status: completed
     objective:
       - TOPIC_POOL 中的 aiGoal 与新世界观对齐
       - 移除引用不存在事件（记忆缺口等）的话题
@@ -575,4 +575,40 @@ risks:
   version_target: v2.2
   change: initialized_v2.2_task_backlog_with_full_narrative_context
   status: ready_for_execution
+- date: 2026-02-23
+  version_target: v2.2
+  change: completed_T1_api_config_save_status_persistence_fix
+  status: done
+- date: 2026-02-23
+  version_target: v2.2
+  change: completed_T2_worldview_restructure_with_core_extended_sections
+  status: done
+- date: 2026-02-23
+  version_target: v2.2
+  change: completed_T3_fragment_source_schema_rewrite_and_archive_source_tags
+  status: done
+- date: 2026-02-23
+  version_target: v2.2
+  change: completed_T4_route_opening_lines_and_intro_atmosphere
+  status: done
+- date: 2026-02-23
+  version_target: v2.2
+  change: completed_T5_investigation_archive_mode_and_fragment_association_hints
+  status: done
+- date: 2026-02-23
+  version_target: v2.2
+  change: completed_T6_character_card_cognition_boundary_rewrite
+  status: done
+- date: 2026-02-23
+  version_target: v2.2
+  change: completed_T7_worldview_layered_loading_core_extended_logic
+  status: done
+- date: 2026-02-23
+  version_target: v2.2
+  change: completed_T8_opening_emails_and_system_message_atmosphere_refresh
+  status: done
+- date: 2026-02-23
+  version_target: v2.2
+  change: completed_T9_topic_pool_and_dialogue_prompt_alignment
+  status: done
 ```

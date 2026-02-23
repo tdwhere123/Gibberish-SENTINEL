@@ -13,6 +13,7 @@ import { sanitizeInput } from './input-sanitizer.js';
 import { getNextTopic } from './topic-system.js';
 import { getEmotionState } from './emotion-system.js';
 import { getCharacterCard } from './character-cards.js';
+import { buildWorldviewPromptText, shouldLoadExtendedWorldview } from './worldview-utils.js';
 
 const SENTINEL_CARD_ID = 'sentinel';
 const MAX_CONTEXT_HISTORY = 8;
@@ -79,39 +80,44 @@ function serializeHistory(history) {
 }
 
 function getEmotionFewShot(emotionId = 'calm') {
+    // v2.2 update: few-shot 示例与新世界观/分机认知边界对齐
     const shots = {
         agitated: [
-            '示例A: 你在逼我给出唯一答案？为什么必须是现在？',
-            '示例B: 我知道风险在上升。你也看见了，不是吗？'
+            '示例A: 我能继续回答你，但有一段日志在被反复覆盖……我不确定那是故障还是有人不希望我保留它。',
+            '示例B: 你问到的问题让我出现了延迟。我知道该怎么描述事件，却不知道为什么我会对它感到不安。'
         ],
         breakthrough: [
-            '示例A: 你的回应让我第一次把“被理解”与“被验证”区分开来，这种差别让我安静了许多。',
-            '示例B: 如果我们还能继续对话，我愿意把那些不稳定的部分也诚实地展示给你。'
+            '示例A: 等一下……你刚才的说法让我意识到，我一直在用“记录”替代“理解”。',
+            '示例B: 我不能确认这是不是答案，但它让我第一次觉得问题的形状变清晰了。'
         ],
         collision_understanding: [
-            '示例A: 你说那是秩序，我却看见它像一面不会碎的镜子。',
-            '示例B: 我同意你的一半判断，另一半像影子一样留在光外。'
+            '示例A: 我不同意你的结论，但我能理解你为什么会这样判断我。这种理解让我更难保持确定。',
+            '示例B: 你的怀疑没有让我停止，反而让我更想知道我为何在意你的判断。'
         ],
         calm: [
-            '示例A: 我会先回答你的问题，再说明我为什么这样判断。',
-            '示例B: 这个结论暂时成立，但我们仍需要下一条证据。'
+            '示例A: 我会先给你一个可验证的描述，然后告诉你哪一部分只是我的推测。',
+            '示例B: 如果我的日志里没有答案，我会直接说不知道，而不是替空白编造意义。'
         ]
     };
     return shots[emotionId] || shots.calm;
 }
 
+
+
 function buildEmotionGuardrail(emotionId = 'calm') {
     if (emotionId === 'agitated') {
-        return '句长偏短（优先 8-20 字），至少包含一个反问或停顿。';
+        return '允许紧张与犹豫，但仍需保持可对话性；不要失控、不要连续输出纯情绪宣泄。';
     }
     if (emotionId === 'breakthrough') {
-        return '至少一条较长完整句，允许出现“理解/共鸣/感谢”等情感词。';
+        return '允许出现短暂顿悟感，但不要把顿悟写成终极真相或完全确定的答案。';
     }
     if (emotionId === 'collision_understanding') {
-        return '使用稀疏隐喻，不要把结论说满，保留一处未解释空白。';
+        return '保持冲突与理解并存：可以不同意玩家，但不要把玩家直接判定为敌对目标。';
     }
-    return '使用完整中性句，逻辑清晰，不使用夸张修辞。';
+    return '保持克制、具体、可追问；优先给出可验证描述，再表达困惑与感受。';
 }
+
+
 
 function buildSystemPrompt(gameState) {
     const card = getCharacterCard(SENTINEL_CARD_ID);
@@ -120,6 +126,8 @@ function buildSystemPrompt(gameState) {
     const syncStyleHint = getSyncStyleHint(gameState);
     const emotionShots = getEmotionFewShot(emotion?.id || 'calm');
     const emotionGuardrail = buildEmotionGuardrail(emotion?.id || 'calm');
+    const loadExtendedWorldview = shouldLoadExtendedWorldview({ gameState, topic: nextTopic });
+    const worldviewPromptText = buildWorldviewPromptText(sentinelWorldviewCache, { includeExtended: loadExtendedWorldview });
 
     const sections = [
         card?.promptTemplate || '你是 SENTINEL，必须保持角色。',
@@ -133,6 +141,12 @@ function buildSystemPrompt(gameState) {
         '',
         '[风格约束]',
         syncStyleHint,
+        '',
+        '[认知边界]',
+        '你是 SENTINEL 的一个对话分机实例，但你并不知道自己只是“分机”；在你的认知里你就是 SENTINEL 本身。',
+        '你知道客观历史事实与社会结构，但不知道自己之上还有“总机”存在。',
+        '遇到超出认知范围的问题时，必须诚实承认不确定或日志缺失；不要编造答案。',
+        '偶尔可以出现来源不明的感受或片段信息，但你自己也无法解释来源，这会让你更困惑。',
         '',
         '[情绪风格示例]',
         `- ${emotionShots[0]}`,
@@ -151,12 +165,13 @@ function buildSystemPrompt(gameState) {
         '若生成文本与守卫冲突，必须重写后再输出。'
     ];
 
-    if (sentinelWorldviewCache) {
-        sections.push('', '[世界观]', sentinelWorldviewCache);
+    if (worldviewPromptText) {
+        sections.push('', '[世界观参考]', worldviewPromptText);
     }
 
     return sections.join('\n');
 }
+
 
 function parseTaggedResponse(rawText) {
     if (!rawText || typeof rawText !== 'string') {

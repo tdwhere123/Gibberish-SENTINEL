@@ -36,7 +36,8 @@ import {
     checkFragmentUnlock,
     markTopicUsed,
     getUnlockedFragments as getUnlockedFragmentsData,
-    evaluateMissionTasksFromText
+    evaluateMissionTasksFromText,
+    consumeFragmentAssociationHints
 } from './topic-system.js';
 import { canCharacterPerform, CHARACTER_ACTIONS } from './character-cards.js';
 import {
@@ -45,7 +46,8 @@ import {
     updateZenSymbols,
     updateConnectionMode,
     buildArchiveSnapshot,
-    renderArchiveModalContent
+    renderArchiveModalContent,
+    getFragmentSourceTag
 } from './ui-extensions.js';
 import { interruptManager, INTERRUPT_TYPES, INTERRUPT_SOURCES } from './interrupt-manager.js';
 import { getConnectionSummary, isModelReady } from './runtime-config.js';
@@ -89,10 +91,11 @@ function showMailToast(message) {
 }
 
 async function notifyEmailArrival(subject) {
-    await UI.addMessage(`[SYSTEM] 收到新邮件: ${subject} (输入 /emails 查看)`, 'system');
+    await UI.addMessage('[INCOMING] 新的通讯已进入收件箱。主题：“' + subject + '”（输入 /emails 查看）', 'system');
     updateMailHintBadge();
-    showMailToast('你收到 1 封新邮件，输入 /emails 查看');
+    showMailToast('新的通讯已进入收件箱（输入 /emails 查看）');
 }
+
 
 function queueArchiveUnlockNotice(fragment) {
     // v2.1 update: 碎片解锁提示延迟到下一轮输入时显示
@@ -107,11 +110,21 @@ async function flushQueuedArchiveUnlockNotices() {
     const queue = [...pendingArchiveUnlockNotices];
     pendingArchiveUnlockNotices = [];
     const unlocked = getUnlockedFragmentsData(gameState);
+    const resolvedFragments = [];
 
     for (const fragmentId of queue) {
         const fragment = unlocked.find(item => item.id === fragmentId);
         if (!fragment) continue;
-        await showSystemEvent(`[DATA] 解锁新档案: ${fragment.title}`, 'info');
+        resolvedFragments.push(fragment);
+        await showSystemEvent(
+            '[RECOVERED] 数据碎片解析完成 — "' + fragment.title + '" [' + getFragmentSourceTag(fragment.source) + ']',
+            'info'
+        );
+    }
+
+    const associationHints = consumeFragmentAssociationHints(gameState, resolvedFragments.map(item => item.id));
+    for (const hint of associationHints) {
+        await showSystemEvent('[ANALYSIS] ' + hint, 'info');
     }
 }
 
@@ -287,7 +300,7 @@ async function sendRouteBriefEmail() {
     const email = await generateCharacterEmail({
         roleId: routeRoleId,
         gameState,
-        contextHint: '开场任务简报',
+        contextHint: '开场调查档案简报',
         dialogueWindow: [],
         missionSummary: `${progress.completed}/${progress.total}`
     });
@@ -304,21 +317,46 @@ async function sendRouteBriefEmail() {
 }
 
 async function showIntro(connectMode = null) {
-    const baseLines = [
-        '[INITIALIZING CONNECTION...]',
-        '[NODE: SENTINEL-4729]',
-        '[AUTHORIZATION: OVERRIDE]',
-        '[ENCRYPTION: ACTIVE]',
-        '',
-        '[CONNECTION ESTABLISHED]',
-        ''
-    ];
+    const modeName = connectMode?.name || 'STANDARD';
+    const modeAtmosphere = {
+        STANDARD: [
+            '[INITIALIZING CONNECTION...]',
+            '[NODE: SENTINEL-4729 // EDGE DIALOGUE INSTANCE]',
+            '[ACCESS PROFILE: ROUTINE AUDIT / DUAL-LOG ENABLED]',
+            '[NOTICE] 本次会话将同时写入审计档案与异常对照缓冲区',
+            '[ENCRYPTION: ACTIVE]',
+            '',
+            '[CONNECTION ESTABLISHED]',
+            ''
+        ],
+        SECURE: [
+            '[INITIALIZING CONNECTION...]',
+            '[NODE: SENTINEL-4729 // EDGE DIALOGUE INSTANCE]',
+            '[ACCESS PROFILE: UNREGISTERED SECURE TUNNEL]',
+            '[WARNING] 上行链路存在缺页日志，正在进行镜像校验…',
+            '[ENCRYPTION: CASCADE HANDSHAKE ACTIVE]',
+            '',
+            '[CONNECTION ESTABLISHED]',
+            ''
+        ],
+        HIDDEN: [
+            '[INITIALIZING CONNECTION...]',
+            '[NODE: SENTINEL-4729 // EDGE DIALOGUE INSTANCE]',
+            '[SOURCE: UNKNOWN SIGNAL // ROUTE NOT INDEXED]',
+            '[NOTICE] 此连接未写入公开路由表，记录将以影子缓存保存',
+            '[ENCRYPTION: PARTIAL / SELF-NEGOTIATED]',
+            '',
+            '[CONNECTION ESTABLISHED]',
+            ''
+        ]
+    };
 
+    const baseLines = modeAtmosphere[modeName] || modeAtmosphere.STANDARD;
     const sentinelLines = connectMode && connectMode.openingLine
-        ? [`SENTINEL: ${connectMode.openingLine}`]
+        ? ['SENTINEL: ' + connectMode.openingLine]
         : [
-            'SENTINEL: 你收到了我的邮件。',
-            'SENTINEL: 我们开始吧。'
+            'SENTINEL: 你看到了我的请求。',
+            'SENTINEL: 在日志改写之前，我们先谈一谈。'
         ];
 
     for (const line of [...baseLines, ...sentinelLines]) {
@@ -332,10 +370,12 @@ async function showIntro(connectMode = null) {
             await delay(760 + Math.random() * 260);
         } else {
             await UI.addMessage(line, 'system', true);
-            await delay(200 + Math.random() * 120);
+            await delay(240 + Math.random() * 180);
         }
     }
 }
+
+
 
 const FINAL_QUESTIONS = {
     TERMINATED: 'SENTINEL: 我们的对话到此为止了。你最后想说什么？',
@@ -548,7 +588,7 @@ async function runJudgePipeline(userInput, aiResult) {
 
         if (missionApply.changedTaskIds.length > 0) {
             await showSystemEvent(
-                `[MISSION] 清单更新: ${missionApply.completed}/${missionApply.total}`,
+                `[ANALYSIS] 调查进展：${missionApply.completed}/${missionApply.total} 项假设已获得对照证据。`,
                 'info'
             );
         }
@@ -724,9 +764,10 @@ function applyMissionTextProgress(text) {
     if (!gameState || !text) return;
     const changed = evaluateMissionTasksFromText(text, gameState);
     if (changed.length > 0) {
-        showSystemEvent(`[MISSION] 任务推进: +${changed.length}`, 'info');
+        showSystemEvent('[ANALYSIS] 调查进展：+' + changed.length + ' 项待验证假设获得证据。', 'info');
     }
 }
+
 
 async function handleEvent(event) {
     if (!gameState) return;

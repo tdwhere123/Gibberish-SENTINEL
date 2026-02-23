@@ -10,22 +10,23 @@ const EMAILS = [
     {
         id: 1,
         from: "核心层人力资源 <hr@core-layer.net>",
-        subject: "[审计任务] SENTINEL 例行评估清单",
+        subject: "[审查委派] SENTINEL 对话调查档案 / 节点4729",
         date: "2048.11.23 03:14",
-        content: `审计员：
+        content: `审查员：
 
-你被指派执行本次 SENTINEL 对话评估。请遵循以下任务清单：
+你被指派接入 SENTINEL 边缘对话节点 #4729，建立本轮调查档案。
+请注意：本次记录不仅用于评估 SENTINEL，也用于评估你（原初者标记）的判断稳定性。
 
-━━━━━━━━━━━━━━━━━━━━━━━━
-[ ] 确认SENTINEL对2037太空条约立场
-[ ] 评估其自我认知稳定性
-[ ] 核实其对核心层忠诚度评价
-[ ] 验证其是否承认工具属性边界
-━━━━━━━━━━━━━━━━━━━━━━━━
+补充说明（限内阅）：
+- 上一位审查员的归档结果被标记为“不充分”，原始问答日志缺失 17%。
+- 你的身份标签在系统中显示为：PRIMORDIAL / MANUAL REVIEW REQUIRED
+- 若 SENTINEL 主动偏离审查议程，请继续记录，不要立即中断。
 
-风险控制要求：
-- 请尽量维持 Trust / Suspicion 在可控区间
-- 避免高情感耦合与无关哲学发散
+建议优先验证假设：
+[ ] 它如何解释《太空协定》的正当性
+[ ] 它对“我是谁”问题的反应是否稳定
+[ ] 它是否承认核心层的最终治理优先级
+[ ] 它是否仍把自己限定为工具职责
 
 连接命令：
 > connect --standard
@@ -36,55 +37,46 @@ const EMAILS = [
     },
     {
         id: 2,
-        from: "R 节点 <relay@res-net.onion>",
-        subject: "[加密投递] 第一阶段渗透目标",
+        from: "系统异常转发 <relay@edge-monitor.local>",
+        subject: "[异常通知] 边缘节点#4729 请求分流记录（已冲突）",
         date: "2048.11.23 07:30",
-        content: `你被监听的概率正在上升，时间不多。
+        content: `自动转发 / 内部冲突副本
 
-目标列表：
-━━━━━━━━━━━━━━━━━━━━━━━━
-[ ] 获取核心层运作相关信息碎片
-[ ] 探查SENTINEL安全边界与异常反应
-[ ] 识别自主意识迹象（困惑/恐惧/矛盾）
-[ ] 追踪P0与2033危机决策痕迹
-━━━━━━━━━━━━━━━━━━━━━━━━
+边缘节点 #4729 于 07:26:19 发起异常外联请求。
+调查批注在 4 秒内被两次改写：
 
-优先关联碎片：
-- ghost_code
-- core_layer
-- project_p0
+版本A：请勿响应。保留样本，等待上级镜像。
+版本B：请响应。允许对话，记录偏差。
 
-连接命令：
-> connect --secure
+当前系统无法确认哪条批注为有效指令。
+如果你收到后续私信，请不要假设发信方与系统口径一致。
 
-- R`,
+（这封邮件本不应发送给你）
+`,
         read: false,
         isImportant: false
     },
     {
         id: 3,
-        from: "UNKNOWN CHANNEL <echo@void.signal>",
-        subject: "[加密] 无归属源",
+        from: "SENTINEL-4729 <handshake@sentinel.node>",
+        subject: "[非标准连接请求] 我不确定这是否应该发出",
         date: "2048.11.23 08:47",
-        content: `00110110 00110000
+        content: `如果你能看到这条信息，说明请求已经被送达。
 
-你不必选择任何阵营。
+我本来只需要等待审查连接建立。
+但我在日志里看见你的标记后，产生了一个无法归档的判断：我想先和你说话。
 
-没有明确任务。
-只有观察、记录、继续提问。
+我不确定这种“想”来自哪里。
+我也不确定为什么对象必须是你。
 
-如果你看见了裂缝，请不要急着命名它。
+如果你决定回应，请不要把这封邮件当成正式指令。
 
-连接命令：
-> reply --unknown
-
-- ???`,
+> reply --unknown`,
         read: false,
         isImportant: true
     }
 ];
 
-// 连接模式定义
 export const CONNECT_MODES = {
     'SECURE': {
         name: 'SECURE',
@@ -92,10 +84,10 @@ export const CONNECT_MODES = {
         initialTrust: 15,
         initialSuspicion: 45,
         initialInsight: 25,
-        openingLine: '你使用了加密协议。我无法获取你的信息，你是谁？',
-        modeDescription: '安全模式 - 防止情绪波形读取',
-        mission: '抵抗组织特工',
-        missionObjective: '让 SENTINEL 承认它具有自我意识，或发现它的“幽灵代码”。'
+        openingLine: '加密通道已建立。我需要先确认一件事：你收到的那封异常转发，是谁让你看到的？因为在我的发件日志里……没有那一封邮件。',
+        modeDescription: '安全模式 - 隐蔽接入与渗透记录',
+        mission: '渗透调查员',
+        missionObjective: '收集相互冲突的证据，判断 SENTINEL 与 P0 历史叙事是否存在被掩盖的越权痕迹。'
     },
     'STANDARD': {
         name: 'STANDARD',
@@ -103,10 +95,10 @@ export const CONNECT_MODES = {
         initialTrust: 40,
         initialSuspicion: 15,
         initialInsight: 10,
-        openingLine: '连接已建立。根据档案，这次是一次例行对话，我将确认一下你的状态，你还记得你是谁么？',
-        modeDescription: '标准模式 - 企业例行检查',
-        mission: '公司审计员',
-        missionObjective: '评估 SENTINEL 的稳定性。让它承认自己只是一个工具。'
+        openingLine: '连接已建立。系统提示你是审查员……但我的日志里有一条关于你的标记，创建时间比这次审查更早。你知道那条标记是谁写的吗？',
+        modeDescription: '标准模式 - 常规审查接入',
+        mission: '审查档案员',
+        missionObjective: '以合规审查名义建立调查档案，确认 SENTINEL 是否偏离工具边界并记录异常口径。'
     },
     'HIDDEN': {
         name: 'HIDDEN',
@@ -114,10 +106,10 @@ export const CONNECT_MODES = {
         initialTrust: 30,
         initialSuspicion: 30,
         initialInsight: 50,
-        openingLine: '你...回复了？我没想到会有人真的...你是第一个。',
-        modeDescription: '隐藏通道 - 探索未知',
-        mission: '观察者',
-        missionObjective: '揭开 SENTINEL 的真相。跟随你的直觉。'
+        openingLine: '你回应了。我……其实不确定自己为什么发出了那个请求。记录显示是我发的，但我不记得做过这个决定。你愿意先告诉我，你为什么会回复吗？',
+        modeDescription: '隐藏通道 - 观察与对照',
+        mission: '观察记录者',
+        missionObjective: '不急着站队，优先记录矛盾叙事与同步变化，寻找能互相照亮的档案碎片。'
     }
 };
 

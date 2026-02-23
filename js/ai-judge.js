@@ -10,6 +10,7 @@ import { CONFIG } from './config.js';
 import { buildLLMRequestOptions } from './runtime-config.js';
 import { getCharacterCard } from './character-cards.js';
 import { getMissionProgress } from './mission-system.js';
+import { buildWorldviewPromptText, shouldLoadExtendedWorldview } from './worldview-utils.js';
 
 const DEFAULT_ROUTE_RESULT = Object.freeze({
     deviationDelta: 0,
@@ -39,13 +40,15 @@ function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function loadWorldviewByCard(cardId) {
+async function loadWorldviewByCard(cardId, options = {}) {
     const card = getCharacterCard(cardId);
     const filePath = card?.worldviewFile;
     if (!filePath) return '';
 
+    const includeExtended = shouldLoadExtendedWorldview(options);
+
     if (worldviewCache.has(filePath)) {
-        return worldviewCache.get(filePath);
+        return buildWorldviewPromptText(worldviewCache.get(filePath), { includeExtended });
     }
 
     try {
@@ -53,7 +56,8 @@ async function loadWorldviewByCard(cardId) {
         if (!response.ok) return '';
         const text = await response.text();
         worldviewCache.set(filePath, text);
-        return text;
+        // v2.2 update: judge 默认仅注入 worldview 核心层；高同步或深历史上下文时补充扩展层
+        return buildWorldviewPromptText(text, { includeExtended });
     } catch {
         return '';
     }
@@ -326,7 +330,10 @@ export async function judgeRouteTurn(params = {}) {
     const missionProgress = getMissionProgress(gameState);
 
     try {
-        const worldviewText = await loadWorldviewByCard(routeRoleId);
+        const worldviewText = await loadWorldviewByCard(routeRoleId, {
+            gameState,
+            extraContext: params.extraContext || ''
+        });
         const messages = buildRouteJudgeMessages({ ...params, routeRoleId, dialogueWindow, gameState }, worldviewText);
         const content = await callJudgeModel(messages);
         const parsed = extractJson(content);
@@ -350,7 +357,10 @@ export async function judgeMysteryTrigger(params = {}) {
     const dialogueText = serializeDialogue(dialogueWindow);
 
     try {
-        const worldviewText = await loadWorldviewByCard('mystery');
+        const worldviewText = await loadWorldviewByCard('mystery', {
+            gameState,
+            extraContext: params.extraContext || ''
+        });
         const messages = buildMysteryJudgeMessages({ ...params, dialogueWindow, gameState }, worldviewText);
         const content = await callJudgeModel(messages);
         const parsed = extractJson(content);

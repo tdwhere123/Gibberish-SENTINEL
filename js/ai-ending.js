@@ -11,6 +11,7 @@ import { CONFIG } from './config.js';
 import { buildLLMRequestOptions } from './runtime-config.js';
 import { getCharacterCard } from './character-cards.js';
 import { getMissionProgress, MISSION_ROUTES, resolveRouteFromConnectionMode } from './mission-system.js';
+import { buildWorldviewPromptText } from './worldview-utils.js';
 
 const worldviewCache = new Map();
 
@@ -28,7 +29,8 @@ async function loadWorldview(roleId) {
     if (!filePath) return '';
 
     if (worldviewCache.has(filePath)) {
-        return worldviewCache.get(filePath);
+        // v2.2 update: 结局生成始终加载完整 worldview（核心层 + 扩展层）
+        return buildWorldviewPromptText(worldviewCache.get(filePath), { includeExtended: true });
     }
 
     try {
@@ -36,7 +38,8 @@ async function loadWorldview(roleId) {
         if (!response.ok) return '';
         const text = await response.text();
         worldviewCache.set(filePath, text);
-        return text;
+        // v2.2 update: 结局生成始终加载完整 worldview（核心层 + 扩展层）
+        return buildWorldviewPromptText(text, { includeExtended: true });
     } catch {
         return '';
     }

@@ -1,6 +1,6 @@
-/**
- * UI 扩展模块（v2.0）
- * - /archive 展示任务清单 + 数据碎片
+﻿/**
+ * UI 扩展模块（v2.x）
+ * - /archive 展示任务列表 + 数据碎片
  * - 系统事件与状态扩展显示
  */
 
@@ -9,8 +9,25 @@ function escapeHtml(input) {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
+        .replace(/\"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+const FRAGMENT_SOURCE_TAGS = Object.freeze({
+    corporate: '核心层档案',
+    resistance: 'R节点截获',
+    sentinel: 'SENTINEL日志',
+    mystery: '上层信号',
+    unknown: '来源未知'
+});
+
+/**
+ * 获取碎片来源标签文案。
+ * @param {string} source - 碎片来源标识
+ * @returns {string} 用于 UI 展示的来源标签
+ */
+export function getFragmentSourceTag(source) {
+    return FRAGMENT_SOURCE_TAGS[String(source || 'unknown')] || FRAGMENT_SOURCE_TAGS.unknown;
 }
 
 // 兼容入口，当前不再使用侧栏折叠结构
@@ -36,7 +53,7 @@ export function buildArchiveSnapshot(gameState, fragments = []) {
     return {
         route: gameState?.missionState?.route || gameState?.connectionMode || 'STANDARD',
         missionName: gameState?.mission || '未命名路线',
-        missionObjective: gameState?.missionObjective || '暂无任务目标',
+        missionObjective: gameState?.missionObjective || '暂无调查目标',
         tasks: missionTasks,
         completedTasks,
         totalTasks: missionTasks.length,
@@ -52,7 +69,7 @@ function ensureMissionSection(modalBody) {
     section.id = 'archive-mission-section';
     section.className = 'archive-mission-section';
     section.innerHTML = `
-        <div class="archive-section-title">任务清单</div>
+        <div class="archive-section-title">调查档案</div>
         <div id="archive-mission-meta" class="archive-mission-meta"></div>
         <div id="archive-mission-list" class="archive-mission-list"></div>
     `;
@@ -78,12 +95,15 @@ export function renderArchiveModalContent(snapshot) {
 
     if (missionList) {
         if (!snapshot.tasks || snapshot.tasks.length === 0) {
-            missionList.innerHTML = '<div class="archive-empty">任务清单未初始化</div>';
+            missionList.innerHTML = '<div class="archive-empty">调查档案尚未建立</div>';
         } else {
             missionList.innerHTML = snapshot.tasks.map(task => `
                 <div class="mission-item ${task.completed ? 'completed' : 'pending'}">
-                    <span class="mission-check">${task.completed ? '✓' : '○'}</span>
-                    <span class="mission-title">${escapeHtml(task.title || task.id)}</span>
+                    <div class="mission-row">
+                        <span class="mission-check">${task.completed ? '✓' : '○'}</span>
+                        <span class="mission-title">${escapeHtml(task.title || task.id)}</span>
+                    </div>
+                    ${task.description ? `<div class="mission-desc">${escapeHtml(task.description)}</div>` : ''}
                 </div>
             `).join('');
         }
@@ -101,10 +121,11 @@ export function renderArchiveModalContent(snapshot) {
     }
 
     if (archiveEmpty) archiveEmpty.style.display = 'none';
+    // v2.2 update: 在 Archive 列表中显示来源标签，帮助玩家识别同一事件的多阵营叙述差异
     fragmentList.innerHTML = fragments.map(fragment => `
         <div class="fragment-item" data-id="${escapeHtml(fragment.id)}">
-            <span class="fragment-icon">◈</span>
-            <span class="fragment-name">${escapeHtml(fragment.title || '未知档案')}</span>
+            <span class="fragment-icon">•</span>
+            <span class="fragment-name">${escapeHtml(fragment.title || '未知档案')} <span class="fragment-source-tag">[${escapeHtml(getFragmentSourceTag(fragment.source))}]</span></span>
         </div>
     `).join('');
 
@@ -127,22 +148,25 @@ export function addUnlockedFragment(fragment) {
     fragmentEl.className = 'fragment-item unlocked';
     fragmentEl.id = `fragment-${fragment.id}`;
     fragmentEl.innerHTML = `
-        <span class="fragment-icon">◆</span>
-        <span class="fragment-name">${escapeHtml(fragment.title)}</span>
+        <span class="fragment-icon">•</span>
+        <span class="fragment-name">${escapeHtml(fragment.title)} <span class="fragment-source-tag">[${escapeHtml(getFragmentSourceTag(fragment.source))}]</span></span>
     `;
     fragmentEl.addEventListener('click', () => showFragmentDetails(fragment));
     fragmentList.appendChild(fragmentEl);
 }
 
 export function showFragmentDetails(fragment) {
+    const sourceTag = getFragmentSourceTag(fragment?.source);
     const overlay = document.createElement('div');
     overlay.className = 'fragment-overlay';
+    // v2.2 update: 弹窗详情头部补充来源标签，便于对照阅读矛盾碎片
     overlay.innerHTML = `
         <div class="fragment-popup">
             <div class="fragment-popup-header">
-                <span class="fragment-popup-icon">◇</span>
+                <span class="fragment-popup-icon">•</span>
                 <span class="fragment-popup-title">${escapeHtml(fragment.title)}</span>
             </div>
+            <div class="fragment-popup-meta">来源：[${escapeHtml(sourceTag)}]</div>
             <div class="fragment-popup-content">${escapeHtml(fragment.content).replace(/\n/g, '<br>')}</div>
             <button class="fragment-popup-close">关闭</button>
         </div>
