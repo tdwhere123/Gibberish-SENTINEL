@@ -7,6 +7,7 @@ This repository is a browser-based narrative game with a static frontend.
 - `js/`: core game logic (state, dialogue, missions, events, email, UI bindings).
 - `css/`: terminal/game styling.
 - `worldview/` and `WORLDVIEW.md`: narrative lore and route context.
+- `PROJECT_MEMORY.md`: Core source of truth for narrative context, architecture, worldview summaries, and AI long-term project memory.
 - `docs/`: release notes and iteration planning docs.
 - `TASKS.md`: current execution backlog/tasks for the next version.
 
@@ -18,6 +19,10 @@ No build step is required; this project runs as static files.
 - `python -m http.server 8000`: start local server.
 - Open `http://localhost:8000` in a browser to run the game.
 - `git log --oneline -n 10`: review recent commit style before committing.
+
+## AI Environment Constraints (CRITICAL)
+- **The USER's environment is Windows.**
+- When running commands via terminal or scripts (such as `node` scripts, `git` commands, or local servers), **DO NOT use macOS/Linux specific wrappers like `sandbox-exec`**. Execute the raw commands directly (e.g., `node script.js`).
 
 ## Coding Style & Naming Conventions
 - JavaScript uses ES modules (`import`/`export`) and semicolons.

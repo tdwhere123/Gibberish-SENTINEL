@@ -611,4 +611,8 @@ risks:
   version_target: v2.2
   change: completed_T9_topic_pool_and_dialogue_prompt_alignment
   status: done
+- date: 2026-02-24
+  version_target: v2.2
+  change: completed_v2.2_post_refinements_UI_memory_fixes_fragment_expansion
+  status: done
 ```

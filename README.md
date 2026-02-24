@@ -20,6 +20,9 @@
 - Completed: T7 (worldview layered loading: core by default, extended on demand, ending loads full)
 - Completed: T8 (opening emails + system message atmosphere refresh + faction email voice alignment)
 - Completed: T9 (topic pool and dialogue prompt alignment with v2.2 worldview)
+- Completed: Post-v2.2 Refinements (AI memory context fix, `/emails` UI unification, mission difficulty rebalance, Resistance email restored).
+- Completed: Premium UI/UX visual upgrades (glassmorphism, animations).
+- Completed: Data Fragments translated and expanded to full narrative texts by User.
 - Latest execution details: progress.md
 - Task source of truth: TASKS.md
 

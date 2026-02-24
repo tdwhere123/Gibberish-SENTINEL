@@ -7,20 +7,12 @@
 
 import { CONFIG } from './config.js';
 import { GameState } from './game-state.js';
-import { generateDialogueReply, resetDialogueHistory } from './ai-dialogue.js';
+import { generateDialogueReply, generateSystemEmail, generateCharacterEmail, getDialogueHistory, getModelStatus, setModelStatus, resetDialogueHistory, pushDialogueHistory } from './ai-dialogue.js';
 import { judgeRouteTurn, judgeMysteryTrigger } from './ai-judge.js';
 import { generateCharacterEmail } from './ai-email-generator.js';
 import { generateEndingBySpeaker } from './ai-ending.js';
 import { isCommand, executeCommand } from './commands.js';
-import {
-    initEmailSystem,
-    bindConnectButton,
-    resetEmails,
-    triggerUrgentEmail,
-    getEmailState,
-    receiveNewEmail,
-    consumePendingUrgentCallbacks
-} from './emails.js';
+import { bindConnectButton, resetEmails, restoreEmailState, queueDynamicEmail, processDynamicEmailQueue, hasPendingEmails, consumePendingUrgentCallbacks, openInGameMailbox } from './emails.js';
 import * as UI from './ui.js';
 import {
     checkRandomEvents,
@@ -150,24 +142,6 @@ function bindModalEvents() {
             if (e.target === archiveModal) archiveModal.classList.add('hidden');
         });
     }
-
-    const emailsModal = document.getElementById('emails-modal');
-    const emailsClose = document.getElementById('emails-close');
-    if (emailsClose) {
-        emailsClose.addEventListener('click', () => emailsModal?.classList.add('hidden'));
-    }
-    if (emailsModal) {
-        emailsModal.addEventListener('click', (e) => {
-            if (e.target === emailsModal) emailsModal.classList.add('hidden');
-        });
-    }
-}
-
-function openEmailsModal() {
-    const modal = document.getElementById('emails-modal');
-    if (!modal) return;
-    updateEmailsModalContent();
-    modal.classList.remove('hidden');
 }
 
 function openArchiveModal() {
@@ -175,52 +149,6 @@ function openArchiveModal() {
     if (!modal) return;
     updateArchiveModalContent();
     modal.classList.remove('hidden');
-}
-
-function updateEmailsModalContent() {
-    const emailList = document.getElementById('email-list-mini');
-    const mailCount = document.getElementById('mail-count');
-    if (!emailList) return;
-
-    const emailState = getEmailState();
-    if (!emailState || !emailState.emails) {
-        emailList.innerHTML = '<div class="email-placeholder">暂无邮件</div>';
-        return;
-    }
-
-    const emails = emailState.emails;
-    if (mailCount) mailCount.textContent = `${emails.length} 封邮件`;
-
-    emailList.innerHTML = emails.map((email, index) => `
-        <div class="email-item-mini ${email.read ? '' : 'unread'}" data-index="${index}">
-            <div class="email-from">${escapeHtml(email.from)}</div>
-            <div class="email-subject">${escapeHtml(email.subject)}</div>
-        </div>
-    `).join('');
-
-    emailList.querySelectorAll('.email-item-mini').forEach(item => {
-        item.addEventListener('click', () => {
-            const index = Number(item.dataset.index);
-            showEmailDetail(emails[index], item);
-        });
-    });
-}
-
-function showEmailDetail(email, itemElement) {
-    const emailContent = document.getElementById('email-content-mini');
-    if (!emailContent || !email) return;
-
-    document.querySelectorAll('.email-item-mini.active').forEach(el => el.classList.remove('active'));
-    itemElement?.classList.add('active');
-
-    emailContent.innerHTML = `
-        <div class="email-detail-header">
-            <div class="email-detail-from">${escapeHtml(email.from)}</div>
-            <div class="email-detail-subject">${escapeHtml(email.subject)}</div>
-            <div class="email-detail-date">${escapeHtml(email.date)}</div>
-        </div>
-        <div class="email-detail-body">${escapeHtml(email.content || email.body || '').replace(/\n/g, '<br>')}</div>
-    `;
 }
 
 function updateArchiveModalContent() {
@@ -358,6 +286,14 @@ async function showIntro(connectMode = null) {
             'SENTINEL: 你看到了我的请求。',
             'SENTINEL: 在日志改写之前，我们先谈一谈。'
         ];
+
+    // v2.2 fix: Inject opening line into AI memory context
+    if (connectMode && connectMode.openingLine) {
+        pushDialogueHistory('(系统接入)', connectMode.openingLine);
+        if (gameState && typeof gameState.addDialogue === 'function') {
+            gameState.addDialogue('(系统接入)', connectMode.openingLine);
+        }
+    }
 
     for (const line of [...baseLines, ...sentinelLines]) {
         if (!line) {
@@ -835,7 +771,7 @@ async function handleSend() {
 
             if (result.action === 'OPEN_EMAILS') {
                 await consumePendingUrgentCallbacks();
-                openEmailsModal();
+                openInGameMailbox();
                 updateMailHintBadge();
                 isProcessing = false;
                 UI.enableInput();

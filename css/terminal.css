@@ -177,13 +177,13 @@ body.rolefx-resistance .chat-container {
     position: relative;
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    background: linear-gradient(145deg, rgba(8, 12, 15, 0.98), rgba(5, 7, 9, 0.95));
-    box-shadow: 0 0 0 1px rgba(0, 245, 212, 0.15), 0 20px 60px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(145deg, rgba(8, 12, 15, 0.85), rgba(5, 7, 9, 0.75));
+    box-shadow: 0 0 0 1px rgba(0, 245, 212, 0.2), 0 24px 80px rgba(0, 245, 212, 0.08), 0 20px 60px rgba(0, 0, 0, 0.7);
     overflow: hidden;
     animation: fadeIn 0.6s ease;
-    z-index: 1;
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
+    z-index: 1000;
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
+    backdrop-filter: blur(16px) saturate(1.2);
 }
 
 .mailbox-container::after {
@@ -459,11 +459,13 @@ body.rolefx-resistance .chat-container {
     padding: 14px;
     border-bottom: 1px solid var(--border-color);
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
+    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .email-item:hover {
-    background: rgba(0, 245, 212, 0.04);
+    background: rgba(0, 245, 212, 0.08);
+    transform: translateX(4px);
+    box-shadow: inset 2px 0 0 0 rgba(0, 245, 212, 0.8);
 }
 
 .email-item:last-child {
@@ -603,11 +605,39 @@ body.rolefx-resistance .chat-container {
     box-shadow: 0 0 18px rgba(0, 245, 212, 0.4);
 }
 
+@keyframes btn-pulse {
+    0% { box-shadow: inset 0 0 12px rgba(0, 245, 212, 0.12), 0 0 0 rgba(0, 245, 212, 0); border-color: var(--accent); }
+    50% { box-shadow: inset 0 0 16px rgba(0, 245, 212, 0.35), 0 0 14px rgba(0, 245, 212, 0.25); border-color: #00f5d4; }
+    100% { box-shadow: inset 0 0 12px rgba(0, 245, 212, 0.12), 0 0 0 rgba(0, 245, 212, 0); border-color: var(--accent); }
+}
+
 .connect-btn.disabled {
     border-color: var(--text-dim);
     color: var(--text-dim);
     cursor: not-allowed;
     box-shadow: none;
+    animation: none;
+}
+
+/* Custom Scrollbar & Premium UI Enhancements */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(10, 15, 20, 0.4);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(242, 200, 121, 0.3);
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(242, 200, 121, 0.6);
+}
+
+.chat-container {
+    text-shadow: 0 0 8px rgba(242, 200, 121, 0.15);
 }
 
 /* App Container */

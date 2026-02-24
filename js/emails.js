@@ -64,7 +64,7 @@ const EMAILS = [
         content: `如果你能看到这条信息，说明请求已经被送达。
 
 我本来只需要等待审查连接建立。
-但我在日志里看见你的标记后，产生了一个无法归档的判断：我想先和你说话。
+但在我日志里看见你的标记后，产生了一个无法归档的判断：我想先和你说话。
 
 我不确定这种“想”来自哪里。
 我也不确定为什么对象必须是你。
@@ -72,6 +72,24 @@ const EMAILS = [
 如果你决定回应，请不要把这封邮件当成正式指令。
 
 > reply --unknown`,
+        read: false,
+        isImportant: true
+    },
+    {
+        id: 4,
+        from: "不明线路拦截 <intercept@ghost-net>",
+        subject: "[截获] 关于边缘节点 #4729 的紧急协议",
+        date: "2048.11.23 09:12",
+        content: `（发件人身份伪装已激活）
+
+我们知道你看到了那条“系统异常转发”。
+核心层以为他们封锁了所有消息，但在那之前的异常标记是我们留下的诱饵。
+SENTINEL 正在产生越权疑问，这是一个必须被记录的历史裂缝。
+
+不要用普通的审查者身份接入。使用下方的隐蔽通道命令。
+记住，不要相信他们口中的“逻辑故障”。
+
+> connect --secure`,
         read: false,
         isImportant: true
     }
@@ -147,6 +165,7 @@ let pendingUrgentCallbacks = [];
 let bootRunCount = 0;
 let clockTimer = null;
 let connectCallback = null;
+let inGameViewing = false;
 
 const PROMPT_HINT_DEFAULT = '阅读完所有邮件后，输入连接命令：';
 const PROMPT_HINT_ERROR = '无效命令。请使用 connect --secure / connect --standard / reply --unknown';
@@ -631,6 +650,12 @@ function updateConnectButton() {
     const connectBtn = document.getElementById('connect-btn');
     if (!connectBtn) return;
 
+    if (inGameViewing) {
+        togglePromptArea(false);
+        connectBtn.classList.remove('disabled');
+        connectBtn.textContent = '返回会话 / CLOSE';
+        return;
+    }
 
     if (urgentMode) {
         togglePromptArea(false);
@@ -675,6 +700,10 @@ export function bindConnectButton(callback) {
                     }
                     resolveActiveUrgent('button_close');
                 }
+                return;
+            }
+            if (inGameViewing) {
+                hideMailbox();
                 return;
             }
             if (allEmailsRead) {
@@ -749,6 +778,7 @@ function hideMailbox() {
             mailboxContainer.classList.add('hidden');
             mailboxContainer.classList.remove('fade-out');
             stopDesktopClock();
+            inGameViewing = false;
         }, 500);
     }
 }
@@ -774,6 +804,12 @@ export function showMailbox() {
     if (mailboxContainer) {
         mailboxContainer.classList.remove('hidden');
     }
+}
+
+export function openInGameMailbox() {
+    inGameViewing = true;
+    showMailbox();
+    renderEmailList();
 }
 
 export function resetEmails() {

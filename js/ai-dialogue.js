@@ -240,7 +240,7 @@ function buildRequestBody(input, gameState) {
     };
 }
 
-function pushDialogueHistory(user, assistant, meta = {}) {
+export function pushDialogueHistory(user, assistant, meta = {}) {
     dialogueHistory.push({
         user,
         assistant,
