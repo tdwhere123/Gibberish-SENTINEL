@@ -19,6 +19,7 @@ const SENTINEL_CARD_ID = 'sentinel';
 const MAX_CONTEXT_HISTORY = 8;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1200;
+const DIALOGUE_REQUEST_TIMEOUT_MS = 10000;
 
 let dialogueHistory = [];
 let sentinelWorldviewCache = '';
@@ -26,6 +27,15 @@ let worldviewLoadAttempted = false;
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * v2.2 update: prevent long input lock when runtime config is incomplete.
+ * @param {{url?: string, apiKey?: string, model?: string}} runtime
+ * @returns {boolean}
+ */
+function isRuntimeConfigUsable(runtime) {
+    return Boolean(runtime?.url && runtime?.apiKey && runtime?.model);
 }
 
 async function loadSentinelWorldview(forceReload = false) {
@@ -272,6 +282,24 @@ export async function generateDialogueReply(input, gameState, options = {}) {
     await loadSentinelWorldview(false);
 
     const requestBody = buildRequestBody(sanitized, gameState);
+    const runtimeProbe = buildLLMRequestOptions({
+        url: CONFIG.MAIN_API_URL || CONFIG.API_URL,
+        apiKey: CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
+        model: CONFIG.MAIN_MODEL || CONFIG.MODEL
+    });
+
+    // v2.2 update: fail fast when runtime config is missing, avoid hanging UI.
+    if (!isRuntimeConfigUsable(runtimeProbe)) {
+        return {
+            text: 'Signal unstable. Model config missing. Please check API settings.',
+            cleanText: 'Signal unstable. Model config missing. Please check API settings.',
+            effects: { trust: 0, suspicion: 0 },
+            events: [],
+            filtered: wasFiltered,
+            topicId: null,
+            emotionId: getEmotionState(gameState)?.id || 'calm'
+        };
+    }
 
     let lastError = null;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -281,15 +309,23 @@ export async function generateDialogueReply(input, gameState, options = {}) {
                 apiKey: CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
                 model: CONFIG.MAIN_MODEL || CONFIG.MODEL
             });
-
-            const response = await fetch(runtime.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${runtime.apiKey}`
-                },
-                body: JSON.stringify(requestBody)
-            });
+            // v2.2 update: timeout protection so UI does not remain blocked for too long.
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), DIALOGUE_REQUEST_TIMEOUT_MS);
+            let response;
+            try {
+                response = await fetch(runtime.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${runtime.apiKey}`
+                    },
+                    body: JSON.stringify(requestBody),
+                    signal: controller.signal
+                });
+            } finally {
+                clearTimeout(timeoutId);
+            }
 
             if (!response.ok) {
                 throw new Error(`dialogue api error: ${response.status}`);
@@ -328,6 +364,10 @@ export async function generateDialogueReply(input, gameState, options = {}) {
             };
         } catch (error) {
             lastError = error;
+            const isAbort = error?.name === 'AbortError';
+            if (isAbort) {
+                break;
+            }
             if (attempt < MAX_RETRIES) {
                 await sleep(RETRY_DELAY_MS * attempt);
             }

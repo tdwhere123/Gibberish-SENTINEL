@@ -1,15 +1,19 @@
 /**
- * 斜杠命令（v2.0）
+ * 斜杠命令 (v2.0)
  * 仅保留: /emails /archive /exit
  */
 
 const COMMANDS = Object.freeze({
     '/emails': {
-        description: '打开邮件弹窗并结算待处理邮件回调',
+        description: '打开邮件界面',
+        action: 'OPEN_EMAILS'
+    },
+    '/email': {
+        description: '打开邮件界面',
         action: 'OPEN_EMAILS'
     },
     '/archive': {
-        description: '打开档案与任务清单',
+        description: '打开数据档案',
         action: 'OPEN_ARCHIVE'
     },
     '/exit': {
@@ -22,13 +26,27 @@ const COMMANDS = Object.freeze({
 
 const COMMAND_HINT = '可用命令: /emails, /archive, /exit';
 
+/**
+ * v2.2 update: Normalize command text to handle IME full-width slash input.
+ * @param {string} input
+ * @returns {string}
+ */
+function normalizeCommandInput(input) {
+    return String(input || '')
+        .replace(/^／/, '/')
+        .trim()
+        .toLowerCase();
+}
+
 export function isCommand(input) {
-    const trimmed = String(input || '').trim();
+    // v2.2 update: accept both "/" and "／" command prefix.
+    const trimmed = normalizeCommandInput(input);
     return trimmed.startsWith('/');
 }
 
 export function executeCommand(input, gameState) {
-    const trimmed = String(input || '').trim().toLowerCase();
+    // v2.2 update: execute against normalized command string.
+    const trimmed = normalizeCommandInput(input);
     const command = COMMANDS[trimmed];
 
     if (!command) {

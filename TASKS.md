@@ -615,4 +615,8 @@ risks:
   version_target: v2.2
   change: completed_v2.2_post_refinements_UI_memory_fixes_fragment_expansion
   status: done
+- date: 2026-03-01
+  version_target: v2.2
+  change: completed_startup_ui_hotfix_mainjs_email_imports_and_startup_smoke_validation
+  status: done
 ```

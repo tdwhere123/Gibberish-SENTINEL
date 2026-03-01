@@ -23,6 +23,7 @@
 - Completed: Post-v2.2 Refinements (AI memory context fix, `/emails` UI unification, mission difficulty rebalance, Resistance email restored).
 - Completed: Premium UI/UX visual upgrades (glassmorphism, animations).
 - Completed: Data Fragments translated and expanded to full narrative texts by User.
+- Completed: 2026-03-01 startup hotfix (`main.js` email imports) + end-to-end startup smoke validation.
 - Latest execution details: progress.md
 - Task source of truth: TASKS.md
 

@@ -27,3 +27,16 @@ Original prompt: 查看TASKS.md内容，然后按其中的描述，可以调用s
 - Upgraded UI/UX with premium CSS (glassmorphism, pulse glow animations, custom scrollbars, and CRT text-shadows).
 - User translated and expanded Data Fragments (`js/topic-system.js`) to full narrative texts, cementing the lore established in `PROJECT_MEMORY.md`.
 - Evaluated and updated project tracking documentation (`progress.md`, `README.md`, `TASKS.md`, `AGENTS.md`) and initialized the `PROJECT_MEMORY.md` file to retain AI context across sessions.
+
+## 2026-03-01
+- Investigated startup blank-screen report with the Playwright web-game loop and captured runtime errors from `output/web-game/v21-pass1/errors-0.json`.
+- Identified root cause: `js/main.js` referenced `initEmailSystem`, `getEmailState`, and `receiveNewEmail` without importing them from `js/emails.js`, causing `ReferenceError: initEmailSystem is not defined` during page init.
+- Fixed import list in `js/main.js` (added missing email-system exports and a `// v2.2 update:` marker comment).
+- Validation:
+  - `node --check js/main.js` passed.
+  - Playwright run `output/web-game/v21-pass2` completed with no `errors-*.json` generated.
+  - Extended startup capture `output/web-game/v21-pass3` shows mailbox desktop UI rendering correctly after boot (shots `shot-0.png` and `shot-1.png`).
+  - Full startup smoke (`output/web-game/startup-smoke.mjs`) now verifies mailbox -> read all emails -> `connect --standard` -> main game UI transition, with `output/web-game/startup-smoke/errors.json` = `[]`.
+  - Fixed `/emails` command reliability: support full-width slash input (`／emails`), open mailbox immediately without waiting urgent callbacks, and prevent long input lock from missing model config / slow network in dialogue requests.
+  - Added missing `triggerUrgentEmail` import in `js/main.js`, fixing runtime `ReferenceError` when urgent-mail events trigger after user input.
+  - Regression script `output/web-game/bug-emails-smoke.mjs` verifies: `／emails` opens mailbox, close returns to session, and post-command text input unlocks (`result.json` all true, `actionable-errors.json` empty).

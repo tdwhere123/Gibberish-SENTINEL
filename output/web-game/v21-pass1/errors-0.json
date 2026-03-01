@@ -1,0 +1,6 @@
+[
+  {
+    "type": "pageerror",
+    "text": "ReferenceError: initEmailSystem is not defined"
+  }
+]

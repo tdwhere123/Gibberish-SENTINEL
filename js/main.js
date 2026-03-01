@@ -13,7 +13,21 @@ import { judgeRouteTurn, judgeMysteryTrigger } from './ai-judge.js';
 import { generateCharacterEmail } from './ai-email-generator.js';
 import { generateEndingBySpeaker } from './ai-ending.js';
 import { isCommand, executeCommand } from './commands.js';
-import { bindConnectButton, resetEmails, restoreEmailState, queueDynamicEmail, processDynamicEmailQueue, hasPendingEmails, consumePendingUrgentCallbacks, openInGameMailbox } from './emails.js';
+// v2.2 update: complete email imports to prevent startup ReferenceError.
+import {
+    initEmailSystem,
+    bindConnectButton,
+    resetEmails,
+    restoreEmailState,
+    queueDynamicEmail,
+    processDynamicEmailQueue,
+    hasPendingEmails,
+    triggerUrgentEmail,
+    consumePendingUrgentCallbacks,
+    openInGameMailbox,
+    getEmailState,
+    receiveNewEmail
+} from './emails.js';
 import * as UI from './ui.js';
 import {
     checkRandomEvents,
@@ -771,11 +785,14 @@ async function handleSend() {
             }
 
             if (result.action === 'OPEN_EMAILS') {
-                await consumePendingUrgentCallbacks();
+                // v2.2 update: open mailbox immediately; settle callbacks asynchronously to avoid input lock.
                 openInGameMailbox();
                 updateMailHintBadge();
                 isProcessing = false;
                 UI.enableInput();
+                consumePendingUrgentCallbacks().catch(err => {
+                    console.warn('[Main] consumePendingUrgentCallbacks failed:', err);
+                });
                 return;
             }
 
