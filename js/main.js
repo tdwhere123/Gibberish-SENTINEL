@@ -7,7 +7,8 @@
 
 import { CONFIG } from './config.js';
 import { GameState } from './game-state.js';
-import { generateDialogueReply, generateSystemEmail, generateCharacterEmail, getDialogueHistory, getModelStatus, setModelStatus, resetDialogueHistory, pushDialogueHistory } from './ai-dialogue.js';
+// v2.2 update: 移除 ai-dialogue 已废弃导出，避免模块加载失败
+import { generateDialogueReply, resetDialogueHistory, pushDialogueHistory } from './ai-dialogue.js';
 import { judgeRouteTurn, judgeMysteryTrigger } from './ai-judge.js';
 import { generateCharacterEmail } from './ai-email-generator.js';
 import { generateEndingBySpeaker } from './ai-ending.js';
