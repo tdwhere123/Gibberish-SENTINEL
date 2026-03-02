@@ -360,9 +360,17 @@ async function startFinalQuestion(endingType) {
 }
 
 async function handleFinalAnswer(answer) {
-    gameState.resolveFinalAnswer(answer);
-    await UI.addMessage('SENTINEL: 我记住了。', 'sentinel', true);
-    await handleEnding(pendingEndingType, answer);
+    try {
+        gameState.resolveFinalAnswer(answer);
+        await UI.addMessage('SENTINEL: 我记住了。', 'sentinel', true);
+        await handleEnding(pendingEndingType, answer);
+    } catch (error) {
+        console.error('[Main] handleFinalAnswer error:', error);
+        finalQuestionActive = false;
+        isProcessing = false;
+        UI.enableInput();
+        await UI.addMessage('[ERROR] 结局生成失败，请重试或重新开始游戏。', 'system');
+    }
 }
 
 async function processDynamicEvents() {
@@ -956,11 +964,8 @@ function stopGameLoop() {
 }
 
 function checkAPIKey() {
-    if (!CONFIG.MAIN_API_KEY || CONFIG.MAIN_API_KEY === '') {
-        console.warn('[Main] 警告：MAIN_API_KEY 未配置');
-    }
-    if (!CONFIG.JUDGE_API_KEY || CONFIG.JUDGE_API_KEY === '') {
-        console.warn('[Main] 警告：JUDGE_API_KEY 未配置');
+    if (!isModelReady()) {
+        console.warn('[Main] 运行时 API 未配置或未通过测试。请在 API CONFIG 面板填写 URL / Key / Model 并执行连接测试。');
     }
 }
 

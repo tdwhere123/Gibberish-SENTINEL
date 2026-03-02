@@ -294,6 +294,21 @@ function ensureMailboxShell(mailboxContainer) {
                                 <div class="api-config-status" id="api-config-status">状态：未配置</div>
                             </div>
                         </div>
+                        <div class="mailbox-content hidden" id="mailbox-tab-sys">
+                            <div class="api-config-panel">
+                                <div class="api-config-title">SYS // NODE STATUS</div>
+                                <div class="api-config-status">
+                                    NODE: SENTINEL-4729 // EDGE INSTANCE<br>
+                                    STATUS: DIALOGUE SUBSYSTEM ACTIVE<br>
+                                    LOG ACCESS: RESTRICTED (PARTIAL READ ONLY)<br>
+                                    UPLINK: ROUTED THROUGH CORE-LAYER RELAY<br><br>
+                                    注意：本节点的完整日志访问权限已被限制。<br>
+                                    当前可读条目仅为近期会话摘要，历史档案已归档至核心层镜像节点。<br>
+                                    如需访问完整日志，请通过正规审查程序申请权限。<br><br>
+                                    // 某些条目在传输过程中被改写。原始版本已不可恢复。
+                                </div>
+                            </div>
+                        </div>
                         <div class="mailbox-footer">
                             <div class="terminal-prompt-area" id="terminal-prompt-area" style="display: none;">
                                 <div class="terminal-hint">${PROMPT_HINT_DEFAULT}</div>
@@ -318,6 +333,7 @@ function bindDesktopTabs() {
     const icons = document.querySelectorAll('.desktop-icon');
     const tabMail = document.getElementById('mailbox-tab-mail');
     const tabApi = document.getElementById('mailbox-tab-api');
+    const tabSys = document.getElementById('mailbox-tab-sys');
     if (!icons.length || !tabMail || !tabApi) return;
 
     icons.forEach(icon => {
@@ -329,6 +345,7 @@ function bindDesktopTabs() {
             const tab = icon.dataset.tab;
             tabMail.classList.toggle('hidden', tab !== 'mail');
             tabApi.classList.toggle('hidden', tab !== 'api');
+            if (tabSys) tabSys.classList.toggle('hidden', tab !== 'sys');
         });
     });
 }
@@ -832,7 +849,14 @@ function bindModalEvents() {
     mailboxContainer.dataset.modalBound = 'true';
 
     document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape' || !urgentMode) return;
+        if (e.key !== 'Escape') return;
+
+        if (inGameViewing) {
+            hideMailbox();
+            return;
+        }
+
+        if (!urgentMode) return;
 
         const hasMore = urgentQueue.length > 0;
         if (!hasMore) {
@@ -860,14 +884,15 @@ export function openInGameMailbox() {
     showMailbox();
     // v2.2 update: always switch back to MAIL tab when opened via /emails command.
     const mailIcon = document.querySelector('.desktop-icon[data-tab="mail"]');
-    const apiIcon = document.querySelector('.desktop-icon[data-tab="api"]');
     const tabMail = document.getElementById('mailbox-tab-mail');
     const tabApi = document.getElementById('mailbox-tab-api');
-    if (mailIcon && apiIcon && tabMail && tabApi) {
+    const tabSys = document.getElementById('mailbox-tab-sys');
+    if (mailIcon && tabMail && tabApi) {
+        document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('active'));
         mailIcon.classList.add('active');
-        apiIcon.classList.remove('active');
         tabMail.classList.remove('hidden');
         tabApi.classList.add('hidden');
+        if (tabSys) tabSys.classList.add('hidden');
     }
     renderEmailList();
 }
@@ -1000,6 +1025,8 @@ export function receiveNewEmail(emailData) {
     // 如果正在显示邮件列表，刷新它
     const emailList = document.getElementById('email-list');
     if (emailList && emailList.offsetParent !== null) {
+        renderEmailList();
+    } else if (inGameViewing) {
         renderEmailList();
     }
 

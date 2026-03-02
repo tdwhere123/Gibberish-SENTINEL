@@ -7,7 +7,6 @@
  * - Provide robust JSON parsing + fallback templates
  */
 
-import { CONFIG } from './config.js';
 import { buildLLMRequestOptions } from './runtime-config.js';
 import { extractAssistantText, classifyHttpStatus, summarizeResponseShape } from './llm-compat.js';
 import { getCharacterCard } from './character-cards.js';
@@ -219,11 +218,7 @@ async function callMainModel(prompt, maxRetries = 2) {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            const runtime = buildLLMRequestOptions({
-                url: CONFIG.MAIN_API_URL || CONFIG.API_URL,
-                apiKey: CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
-                model: CONFIG.MAIN_MODEL || CONFIG.MODEL
-            });
+            const runtime = buildLLMRequestOptions({});
 
             const response = await fetch(runtime.url, {
                 method: 'POST',

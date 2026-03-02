@@ -146,11 +146,7 @@ async function callJudgeModel(messages, maxRetries = 2) {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            const runtime = buildLLMRequestOptions({
-                url: CONFIG.JUDGE_API_URL || CONFIG.MAIN_API_URL || CONFIG.API_URL,
-                apiKey: CONFIG.JUDGE_API_KEY || CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
-                model: CONFIG.JUDGE_MODEL || CONFIG.MAIN_MODEL || CONFIG.MODEL
-            });
+            const runtime = buildLLMRequestOptions({});
 
             const response = await fetch(runtime.url, {
                 method: 'POST',

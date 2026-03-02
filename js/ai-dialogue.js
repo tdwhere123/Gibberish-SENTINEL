@@ -7,7 +7,6 @@
  * - Parse trust/suspicion tags and event tags from model response
  */
 
-import { CONFIG } from './config.js';
 import { buildLLMRequestOptions } from './runtime-config.js';
 import { extractAssistantText, classifyHttpStatus, summarizeResponseShape } from './llm-compat.js';
 import { sanitizeInput } from './input-sanitizer.js';
@@ -231,11 +230,7 @@ function buildRequestBody(input, gameState) {
     const systemPrompt = buildSystemPrompt(gameState);
     const historyText = serializeHistory(dialogueHistory);
 
-    const runtime = buildLLMRequestOptions({
-        url: CONFIG.MAIN_API_URL || CONFIG.API_URL,
-        apiKey: CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
-        model: CONFIG.MAIN_MODEL || CONFIG.MODEL
-    });
+    const runtime = buildLLMRequestOptions({});
 
     return {
         model: runtime.model,
@@ -283,17 +278,13 @@ export async function generateDialogueReply(input, gameState, options = {}) {
     await loadSentinelWorldview(false);
 
     const requestBody = buildRequestBody(sanitized, gameState);
-    const runtimeProbe = buildLLMRequestOptions({
-        url: CONFIG.MAIN_API_URL || CONFIG.API_URL,
-        apiKey: CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
-        model: CONFIG.MAIN_MODEL || CONFIG.MODEL
-    });
+    const runtimeProbe = buildLLMRequestOptions({});
 
     // v2.2 update: fail fast when runtime config is missing, avoid hanging UI.
     if (!isRuntimeConfigUsable(runtimeProbe)) {
         return {
-            text: 'Signal unstable. Model config missing. Please check API settings.',
-            cleanText: 'Signal unstable. Model config missing. Please check API settings.',
+            text: '信号中断。API 尚未配置。请前往邮件界面的 API CONFIG 面板完成配置。',
+            cleanText: '信号中断。API 尚未配置。请前往邮件界面的 API CONFIG 面板完成配置。',
             effects: { trust: 0, suspicion: 0 },
             events: [],
             filtered: wasFiltered,
@@ -305,11 +296,7 @@ export async function generateDialogueReply(input, gameState, options = {}) {
     let lastError = null;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            const runtime = buildLLMRequestOptions({
-                url: CONFIG.MAIN_API_URL || CONFIG.API_URL,
-                apiKey: CONFIG.MAIN_API_KEY || CONFIG.API_KEY,
-                model: CONFIG.MAIN_MODEL || CONFIG.MODEL
-            });
+            const runtime = buildLLMRequestOptions({});
             // v2.2 update: timeout protection so UI does not remain blocked for too long.
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), DIALOGUE_REQUEST_TIMEOUT_MS);

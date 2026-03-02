@@ -19,10 +19,19 @@ default_model: gemini-3-flash-preview
 ## MAINTENANCE LOG (2026-03)
 
 - [x] OpenAI-compatible URL 规范化增加可切换模式（safe/none），支持网关场景。
-- [x] API CONFIG 增加“自动补全 OpenAI 路径”开关，并持久化。
+- [x] API CONFIG 增加”自动补全 OpenAI 路径”开关，并持久化。
 - [x] 连接测试增加 schema 不兼容提示与细化错误描述。
 - [x] `/emails` 增加系统回执，降低命令执行无反馈的感知问题。
 - [ ] 基于 turn trace 的 100 轮稳健性回归（待补）。
+- [x] BUG-1 (P0): 修复 CONFIG 模型名强制覆盖运行时配置 — 4个AI模块 buildLLMRequestOptions 移除 CONFIG override
+- [x] BUG-3 (P1): css fade-out 加 animation-fill-mode: forwards 修复闪烁
+- [x] BUG-4 (P1): SYS 标签添加叙事性系统状态内容面板
+- [x] BUG-5 (P1): openInGameMailbox 清除所有标签 active 状态
+- [x] BUG-6 (P1): receiveNewEmail 在邮件箱打开时触发列表刷新
+- [x] BUG-7 (P1): handleFinalAnswer 添加 try/catch 防卡死
+- [x] GAP-1 (P2): checkAPIKey 改为检查 isModelReady()
+- [x] GAP-2 (P2): API未配置错误提示改中文并加操作引导
+- [x] GAP-3 (P2): 游戏中邮件箱支持 Escape 键关闭
 
 ## EXECUTION RULES
 
@@ -626,5 +635,9 @@ risks:
 - date: 2026-03-01
   version_target: v2.2
   change: completed_startup_ui_hotfix_mainjs_email_imports_and_startup_smoke_validation
+  status: done
+- date: 2026-03-02
+  version_target: v2.2
+  change: completed_BUG1_3_4_5_6_7_GAP1_2_3_api_model_override_fix_and_ux_improvements
   status: done
 ```
