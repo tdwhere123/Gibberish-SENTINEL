@@ -787,6 +787,7 @@ async function handleSend() {
             if (result.action === 'OPEN_EMAILS') {
                 // v2.2 update: open mailbox immediately; settle callbacks asynchronously to avoid input lock.
                 openInGameMailbox();
+                await UI.addMessage('[SYSTEM] 邮件面板已打开（输入 /emails 可再次打开）', 'system', true);
                 updateMailHintBadge();
                 isProcessing = false;
                 UI.enableInput();

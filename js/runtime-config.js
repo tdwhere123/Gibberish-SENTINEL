@@ -1,4 +1,11 @@
 import { CONFIG } from './config.js';
+import {
+    normalizeChatCompletionsUrl,
+    resolveNormalizationMode,
+    classifyHttpStatus,
+    extractAssistantText,
+    summarizeResponseShape
+} from './llm-compat.js';
 
 const STORAGE_KEY = 'sentinel_runtime_api_config_v1';
 
@@ -6,6 +13,7 @@ const DEFAULTS = {
     baseUrl: (window.__APP_CONFIG__?.baseUrl || CONFIG.MAIN_API_URL || '').trim(),
     apiKey: (window.__APP_CONFIG__?.apiKey || '').trim(),
     model: (window.__APP_CONFIG__?.model || CONFIG.MAIN_MODEL || CONFIG.MODEL || '').trim(),
+    urlNormalizationMode: window.__APP_CONFIG__?.urlNormalizationMode || 'safe',
     temperature: Number(window.__APP_CONFIG__?.temperature ?? 0.8),
     maxTokens: Number(window.__APP_CONFIG__?.maxTokens ?? 1200),
     tested: false,
@@ -16,10 +24,14 @@ const DEFAULTS = {
 let cache = null;
 
 function normalize(cfg = {}) {
+    const normalizationMode = resolveNormalizationMode(cfg.urlNormalizationMode);
+    const normalizedBaseUrl = normalizeChatCompletionsUrl(cfg.baseUrl || '', normalizationMode);
     return {
-        baseUrl: String(cfg.baseUrl || '').trim(),
+        // v2.2 update: auto-adapt vendor base URL into OpenAI chat-completions endpoint.
+        baseUrl: normalizedBaseUrl,
         apiKey: String(cfg.apiKey || '').trim(),
         model: String(cfg.model || '').trim(),
+        urlNormalizationMode: normalizationMode,
         temperature: Number.isFinite(Number(cfg.temperature)) ? Number(cfg.temperature) : 0.8,
         maxTokens: Number.isFinite(Number(cfg.maxTokens)) ? Number(cfg.maxTokens) : 1200,
         tested: Boolean(cfg.tested),
@@ -51,10 +63,14 @@ export function saveRuntimeConfig(patch = {}) {
 
 export function buildLLMRequestOptions(override = {}) {
     const cfg = getRuntimeConfig();
+    const normalizationMode = resolveNormalizationMode(override.urlNormalizationMode || cfg.urlNormalizationMode);
+    const normalizedOverrideUrl = normalizeChatCompletionsUrl(override.url || '', normalizationMode);
     return {
-        url: override.url || cfg.baseUrl,
+        // v2.2 update: every runtime call uses normalized endpoint.
+        url: normalizedOverrideUrl || cfg.baseUrl,
         apiKey: override.apiKey || cfg.apiKey,
         model: override.model || cfg.model,
+        urlNormalizationMode: normalizationMode,
         temperature: Number(override.temperature ?? cfg.temperature),
         max_tokens: Number(override.max_tokens ?? cfg.maxTokens)
     };
@@ -94,7 +110,19 @@ export async function testRuntimeConnection(inputConfig) {
         });
 
         if (!response.ok) {
-            return saveRuntimeConfig({ ...merged, tested: false, lastTestStatus: `验证失败(${response.status})`, lastError: `HTTP ${response.status}` });
+            const statusInfo = classifyHttpStatus(response);
+            return saveRuntimeConfig({ ...merged, tested: false, lastTestStatus: `验证失败(${response.status})`, lastError: statusInfo.message });
+        }
+
+        const payload = await response.json();
+        const probeText = extractAssistantText(payload);
+        if (!probeText) {
+            return saveRuntimeConfig({
+                ...merged,
+                tested: false,
+                lastTestStatus: '验证失败(schema)',
+                lastError: `响应格式不兼容: ${summarizeResponseShape(payload)}`
+            });
         }
 
         return saveRuntimeConfig({ ...merged, tested: true, lastTestStatus: '验证成功', lastError: '' });

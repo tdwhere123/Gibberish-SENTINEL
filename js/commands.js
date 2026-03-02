@@ -33,8 +33,10 @@ const COMMAND_HINT = '可用命令: /emails, /archive, /exit';
  */
 function normalizeCommandInput(input) {
     return String(input || '')
-        .replace(/^／/, '/')
         .trim()
+        // v2.2 update: normalize full-width slash and full-width space from IME input.
+        .replace(/^／/, '/')
+        .replace(/\u3000/g, ' ')
         .toLowerCase();
 }
 
