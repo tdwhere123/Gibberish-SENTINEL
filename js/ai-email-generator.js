@@ -9,6 +9,7 @@
 
 import { CONFIG } from './config.js';
 import { buildLLMRequestOptions } from './runtime-config.js';
+import { extractAssistantText, classifyHttpStatus, summarizeResponseShape } from './llm-compat.js';
 import { getCharacterCard } from './character-cards.js';
 import { buildWorldviewPromptText, shouldLoadExtendedWorldview } from './worldview-utils.js';
 
@@ -242,11 +243,17 @@ async function callMainModel(prompt, maxRetries = 2) {
             });
 
             if (!response.ok) {
-                throw new Error(`email api status ${response.status}`);
+                const statusInfo = classifyHttpStatus(response);
+                throw new Error(`email api status ${statusInfo.message}`);
             }
 
             const data = await response.json();
-            return data?.choices?.[0]?.message?.content || '';
+            // v2.2 update: support non-standard OpenAI-compatible response envelopes.
+            const content = extractAssistantText(data);
+            if (!content) {
+                throw new Error(`email empty response (${summarizeResponseShape(data)})`);
+            }
+            return content;
         } catch (error) {
             lastError = error;
             if (attempt < maxRetries) {

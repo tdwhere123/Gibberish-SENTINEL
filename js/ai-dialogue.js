@@ -9,6 +9,7 @@
 
 import { CONFIG } from './config.js';
 import { buildLLMRequestOptions } from './runtime-config.js';
+import { extractAssistantText, classifyHttpStatus, summarizeResponseShape } from './llm-compat.js';
 import { sanitizeInput } from './input-sanitizer.js';
 import { getNextTopic } from './topic-system.js';
 import { getEmotionState } from './emotion-system.js';
@@ -328,13 +329,15 @@ export async function generateDialogueReply(input, gameState, options = {}) {
             }
 
             if (!response.ok) {
-                throw new Error(`dialogue api error: ${response.status}`);
+                const statusInfo = classifyHttpStatus(response);
+                throw new Error(`dialogue api error: ${statusInfo.message}`);
             }
 
             const data = await response.json();
-            const rawText = data?.choices?.[0]?.message?.content;
+            // v2.2 update: parse OpenAI-compatible variants from different providers.
+            const rawText = extractAssistantText(data);
             if (!rawText) {
-                throw new Error('dialogue empty response');
+                throw new Error(`dialogue empty response (${summarizeResponseShape(data)})`);
             }
 
             const { cleanText, effects, events } = parseTaggedResponse(rawText);

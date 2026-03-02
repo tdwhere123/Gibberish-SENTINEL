@@ -273,6 +273,7 @@ function ensureMailboxShell(mailboxContainer) {
                                 <label>Base URL<input id="api-base-url" type="text" placeholder="https://.../v1/chat/completions"></label>
                                 <label>API Key<input id="api-key" type="password" placeholder="sk-..."></label>
                                 <label>Model<input id="api-model" type="text" placeholder="gpt-4o-mini"></label>
+                                <label class="api-compat-option"><input id="api-url-autofill" type="checkbox" checked>自动补全 OpenAI 路径（推荐）</label>
                                 <div class="api-config-row">
                                     <label>temperature<input id="api-temperature" type="number" step="0.1" min="0" max="2"></label>
                                     <label>max_tokens<input id="api-max-tokens" type="number" min="16" max="4000"></label>
@@ -327,19 +328,22 @@ function bindApiConfigPanel() {
     const baseUrlInput = document.getElementById('api-base-url');
     const apiKeyInput = document.getElementById('api-key');
     const modelInput = document.getElementById('api-model');
+    const autoFillInput = document.getElementById('api-url-autofill');
     const temperatureInput = document.getElementById('api-temperature');
     const maxTokensInput = document.getElementById('api-max-tokens');
     const saveBtn = document.getElementById('api-save-btn');
     const testBtn = document.getElementById('api-test-btn');
     const statusEl = document.getElementById('api-config-status');
 
-    if (!baseUrlInput || !apiKeyInput || !modelInput || !saveBtn || !testBtn || !statusEl) return;
+    if (!baseUrlInput || !apiKeyInput || !modelInput || !autoFillInput || !saveBtn || !testBtn || !statusEl) return;
 
     const syncForm = () => {
         const cfg = getRuntimeConfig();
         baseUrlInput.value = cfg.baseUrl;
         apiKeyInput.value = cfg.apiKey;
         modelInput.value = cfg.model;
+        // v2.2 update: expose URL normalization mode for compatibility fallback.
+        autoFillInput.checked = cfg.urlNormalizationMode !== 'none';
         temperatureInput.value = String(cfg.temperature);
         maxTokensInput.value = String(cfg.maxTokens);
         statusEl.textContent = `状态：${cfg.lastTestStatus}`;
@@ -354,10 +358,12 @@ function bindApiConfigPanel() {
             const nextBaseUrl = String(baseUrlInput.value || '').trim();
             const nextApiKey = String(apiKeyInput.value || '').trim();
             const nextModel = String(modelInput.value || '').trim();
+            const nextUrlNormalizationMode = autoFillInput.checked ? 'safe' : 'none';
             const hasCoreFieldChanges = (
                 nextBaseUrl !== currentConfig.baseUrl
                 || nextApiKey !== currentConfig.apiKey
                 || nextModel !== currentConfig.model
+                || nextUrlNormalizationMode !== currentConfig.urlNormalizationMode
             );
             // v2.2 update: 仅当“已测试通过的核心配置”发生变化时，重置测试状态并提示重新测试。
             const shouldResetTestStatus = currentConfig.tested && hasCoreFieldChanges;
@@ -365,6 +371,7 @@ function bindApiConfigPanel() {
                 baseUrl: nextBaseUrl,
                 apiKey: nextApiKey,
                 model: nextModel,
+                urlNormalizationMode: nextUrlNormalizationMode,
                 temperature: Number(temperatureInput.value || 0.8),
                 maxTokens: Number(maxTokensInput.value || 1200),
                 tested: shouldResetTestStatus ? false : currentConfig.tested,
@@ -383,6 +390,7 @@ function bindApiConfigPanel() {
                 baseUrl: baseUrlInput.value,
                 apiKey: apiKeyInput.value,
                 model: modelInput.value,
+                urlNormalizationMode: autoFillInput.checked ? 'safe' : 'none',
                 temperature: Number(temperatureInput.value || 0.8),
                 maxTokens: Number(maxTokensInput.value || 1200)
             });
@@ -809,6 +817,17 @@ export function showMailbox() {
 export function openInGameMailbox() {
     inGameViewing = true;
     showMailbox();
+    // v2.2 update: always switch back to MAIL tab when opened via /emails command.
+    const mailIcon = document.querySelector('.desktop-icon[data-tab="mail"]');
+    const apiIcon = document.querySelector('.desktop-icon[data-tab="api"]');
+    const tabMail = document.getElementById('mailbox-tab-mail');
+    const tabApi = document.getElementById('mailbox-tab-api');
+    if (mailIcon && apiIcon && tabMail && tabApi) {
+        mailIcon.classList.add('active');
+        apiIcon.classList.remove('active');
+        tabMail.classList.remove('hidden');
+        tabApi.classList.add('hidden');
+    }
     renderEmailList();
 }
 

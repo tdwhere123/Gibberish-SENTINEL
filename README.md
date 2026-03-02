@@ -59,6 +59,25 @@ python -m http.server 8000
 # 打开 http://localhost:8000
 ```
 
+## API 配置与兼容建议（v2.2 update）
+
+- API 配置位于开局邮箱页的 `API CONFIG` 标签。
+- `Base URL` 支持两种模式：
+  - **自动补全 OpenAI 路径（推荐）**：会自动补到 `.../chat/completions`。
+  - **关闭自动补全**：保留你输入的完整 URL（适用于自定义网关/代理）。
+- 连接测试会返回更明确状态：`验证成功 / 验证失败(状态码) / 验证失败(schema)`。
+
+常见写法示例：
+
+- `https://api.openai.com/v1/chat/completions`（完整端点）
+- `https://api.openai.com`（开启自动补全）
+- `https://your-gateway.example/openai/v1/chat/completions`（建议关闭自动补全后按网关文档填写）
+
+## 命令体验说明（v2.2 update）
+
+- `/emails`、`/Emails`、`／emails` 都会打开邮箱。
+- 命令执行后主对话会显示系统回执，避免“无反应”的错觉。
+
 ## 维护约定
 
 - 任务状态与执行日志优先更新到 `TASKS.md`。

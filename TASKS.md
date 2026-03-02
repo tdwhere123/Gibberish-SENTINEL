@@ -11,10 +11,18 @@ baseline_version: v2.1.0
 target_version: v2.2
 start_date: 2026-02-16
 save_strategy: sentinel_save_v3
-status: completed
+status: in_progress
 language: zh-CN
 default_model: gemini-3-flash-preview
 ```
+
+## MAINTENANCE LOG (2026-03)
+
+- [x] OpenAI-compatible URL 规范化增加可切换模式（safe/none），支持网关场景。
+- [x] API CONFIG 增加“自动补全 OpenAI 路径”开关，并持久化。
+- [x] 连接测试增加 schema 不兼容提示与细化错误描述。
+- [x] `/emails` 增加系统回执，降低命令执行无反馈的感知问题。
+- [ ] 基于 turn trace 的 100 轮稳健性回归（待补）。
 
 ## EXECUTION RULES
 
