@@ -6,7 +6,7 @@
 import { getRuntimeConfig, saveRuntimeConfig, testRuntimeConnection } from './runtime-config.js';
 
 // 邮件数据（v2.0 开场）
-const EMAILS = [
+const INITIAL_EMAILS = [
     {
         id: 1,
         from: "核心层人力资源 <hr@core-layer.net>",
@@ -95,6 +95,14 @@ SENTINEL 正在产生越权疑问，这是一个必须被记录的历史裂缝�
     }
 ];
 
+/**
+ * v2.2 update: Create a fresh opening-mail copy so restart can fully restore initial 4 mails.
+ * @returns {Array<{id:number,from:string,subject:string,date:string,content:string,read:boolean,isImportant:boolean}>}
+ */
+function createInitialEmails() {
+    return INITIAL_EMAILS.map(email => ({ ...email, read: false }));
+}
+
 export const CONNECT_MODES = {
     'SECURE': {
         name: 'SECURE',
@@ -155,15 +163,16 @@ export function parseConnectCommand(input) {
 }
 
 // 当前状态
+let EMAILS = createInitialEmails();
 let currentEmailIndex = 0;
 let allEmailsRead = false;
-const BASE_EMAIL_COUNT = EMAILS.length;
 let urgentMode = false;
 let urgentQueue = [];
 let activeUrgent = null;
 let pendingUrgentCallbacks = [];
 let bootRunCount = 0;
 let clockTimer = null;
+let hideMailboxTimer = null;
 let connectCallback = null;
 let inGameViewing = false;
 
@@ -375,10 +384,15 @@ function bindApiConfigPanel() {
                 temperature: Number(temperatureInput.value || 0.8),
                 maxTokens: Number(maxTokensInput.value || 1200),
                 tested: shouldResetTestStatus ? false : currentConfig.tested,
-                lastTestStatus: shouldResetTestStatus ? '配置已变更，请重新测试' : currentConfig.lastTestStatus,
+                // v2.2 update: 保存后给出明确反馈，避免“点击保存无响应”。
+                lastTestStatus: shouldResetTestStatus
+                    ? '配置已变更，请重新测试'
+                    : (currentConfig.tested ? '配置已保存（已保留测试状态）' : '配置已保存（建议执行连接测试）'),
                 lastError: shouldResetTestStatus ? '' : currentConfig.lastError
             });
-            statusEl.textContent = `状态：${cfg.lastTestStatus}${cfg.lastError ? ` | ${cfg.lastError}` : ''}`;
+            const saveTime = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            // v2.2 update: append save timestamp so each save has visible immediate feedback.
+            statusEl.textContent = `状态：${cfg.lastTestStatus}${cfg.lastError ? ` | ${cfg.lastError}` : ''} · ${saveTime}`;
         });
     }
 
@@ -778,15 +792,36 @@ function togglePromptArea(show) {
     }
 }
 
+/**
+ * v2.2 update: Restore focus to main dialogue input after mailbox closes in-game.
+ */
+function focusGameInputIfVisible() {
+    const appContainer = document.getElementById('app-container');
+    const input = document.getElementById('user-input');
+    if (!appContainer || appContainer.classList.contains('hidden') || !input || input.disabled) {
+        return;
+    }
+
+    requestAnimationFrame(() => {
+        input.focus();
+    });
+}
+
 function hideMailbox() {
     const mailboxContainer = document.getElementById('mailbox-container');
     if (mailboxContainer) {
         mailboxContainer.classList.add('fade-out');
-        setTimeout(() => {
+        // v2.2 update: keep only one pending hide timer to avoid /emails reopen race auto-closing mailbox.
+        if (hideMailboxTimer) {
+            clearTimeout(hideMailboxTimer);
+        }
+        hideMailboxTimer = setTimeout(() => {
             mailboxContainer.classList.add('hidden');
             mailboxContainer.classList.remove('fade-out');
             stopDesktopClock();
             inGameViewing = false;
+            hideMailboxTimer = null;
+            focusGameInputIfVisible();
         }, 500);
     }
 }
@@ -810,6 +845,12 @@ function bindModalEvents() {
 export function showMailbox() {
     const mailboxContainer = document.getElementById('mailbox-container');
     if (mailboxContainer) {
+        // v2.2 update: cancel delayed close to prevent immediate hide after command reopen.
+        if (hideMailboxTimer) {
+            clearTimeout(hideMailboxTimer);
+            hideMailboxTimer = null;
+        }
+        mailboxContainer.classList.remove('fade-out');
         mailboxContainer.classList.remove('hidden');
     }
 }
@@ -832,8 +873,8 @@ export function openInGameMailbox() {
 }
 
 export function resetEmails() {
-    EMAILS.splice(BASE_EMAIL_COUNT);
-    EMAILS.forEach(email => email.read = false);
+    // v2.2 update: hard-reset inbox to original opening emails.
+    EMAILS = createInitialEmails();
     currentEmailIndex = 0;
     allEmailsRead = false;
     urgentMode = false;
@@ -842,6 +883,10 @@ export function resetEmails() {
     pendingUrgentCallbacks = [];
     bootRunCount = 0;
     stopDesktopClock();
+    if (hideMailboxTimer) {
+        clearTimeout(hideMailboxTimer);
+        hideMailboxTimer = null;
+    }
 
     togglePromptArea(false);
     const cmdInput = document.getElementById('connect-command');
